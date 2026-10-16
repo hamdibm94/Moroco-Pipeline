@@ -391,21 +391,69 @@ function initPINLock() {
   const pinForm = document.getElementById("pinForm");
   const pinInput = document.getElementById("pinInput");
   const pinError = document.getElementById("pinError");
+  const pinUserSelect = document.getElementById("pinUserSelect");
   const btnLockApp = document.getElementById("btnLockApp");
+
+  function populatePinUserSelect() {
+    if (!pinUserSelect) return;
+    const accounts = getUserAccounts();
+    const savedUser = sessionStorage.getItem("morocco_pipeline_user") || currentUser || "";
+    
+    pinUserSelect.innerHTML = `<option value="" disabled ${!savedUser ? 'selected' : ''}>-- Select your profile --</option>` +
+      accounts.map(acc => {
+        let icon = "👤";
+        if (acc.role === "Admin") icon = "👑";
+        else if (acc.role === "Team Leader") icon = "👔";
+        return `<option value="${escapeHtml(acc.name)}" ${acc.name === savedUser ? 'selected' : ''}>${icon} ${escapeHtml(acc.name)} (${escapeHtml(acc.role)})</option>`;
+      }).join("");
+  }
+
+  populatePinUserSelect();
+
+  if (pinUserSelect) {
+    pinUserSelect.addEventListener("change", () => {
+      if (pinError) pinError.style.display = "none";
+      if (pinInput) {
+        pinInput.value = "";
+        pinInput.focus();
+      }
+    });
+  }
 
   const isUnlocked = sessionStorage.getItem("morocco_pipeline_unlocked") === "true";
   if (isUnlocked && currentUser) {
     pinOverlay.classList.add("unlocked");
     pinOverlay.style.display = "none";
     updateAdminUI();
+  } else {
+    setTimeout(() => {
+      if (pinUserSelect && !pinUserSelect.value) {
+        pinUserSelect.focus();
+      } else if (pinInput) {
+        pinInput.focus();
+      }
+    }, 150);
   }
 
   function attemptUnlock() {
+    const selectedUser = pinUserSelect ? pinUserSelect.value : "";
+    if (!selectedUser) {
+      pinError.textContent = "Please select your profile first.";
+      pinError.style.display = "block";
+      if (pinUserSelect) pinUserSelect.focus();
+      return;
+    }
+
     const enteredPin = pinInput.value.trim();
-    if (!enteredPin) return;
+    if (!enteredPin) {
+      pinError.textContent = "Please enter your 4-digit PIN code.";
+      pinError.style.display = "block";
+      pinInput.focus();
+      return;
+    }
 
     const accounts = getUserAccounts();
-    const matchedAccount = accounts.find(a => a.pin === enteredPin);
+    const matchedAccount = accounts.find(a => a.name === selectedUser && a.pin === enteredPin);
 
     if (matchedAccount) {
       currentUser = matchedAccount.name;
@@ -420,7 +468,7 @@ function initPINLock() {
       applyFiltersAndRender();
       showToast("Session Unlocked", `Welcome ${currentUser} (${matchedAccount.role})`);
     } else {
-      pinError.textContent = "Incorrect PIN code. Please try again.";
+      pinError.textContent = `Incorrect PIN for ${selectedUser}. Please try again.`;
       pinError.style.display = "block";
       pinInput.value = "";
       pinInput.focus();
@@ -450,18 +498,12 @@ function initPINLock() {
     pinOverlay.classList.remove("unlocked");
     pinOverlay.style.display = "flex";
     pinInput.value = "";
-    setTimeout(() => pinInput.focus(), 200);
+    populatePinUserSelect();
+    setTimeout(() => {
+      if (pinInput) pinInput.focus();
+    }, 200);
   });
 }
-
-window.selectQuickUser = (name, pin) => {
-  const pinInput = document.getElementById("pinInput");
-  if (pinInput) {
-    pinInput.value = pin;
-    const form = document.getElementById("pinForm");
-    if (form) form.dispatchEvent(new Event("submit"));
-  }
-};
 
 // ── 6. SUPABASE CLOUD SYNC & DATA PERSISTENCE ─────────────────────────────
 const DEFAULT_SUPABASE_TABLE = "morocco_pipeline";
@@ -517,19 +559,18 @@ function initSupabase() {
   }
 }
 
-const CURRENT_DATABASE_VERSION = "2026-10-15-v5-forecast-aligned";
+const CURRENT_DATABASE_VERSION = "2026-10-16-v7-production-clean";
 
 function reflashLocalDatabase(notify = false) {
-  if (typeof window !== "undefined" && window.SEED_DEALS && Array.isArray(window.SEED_DEALS) && window.SEED_DEALS.length > 0) {
-    allDeals = JSON.parse(JSON.stringify(window.SEED_DEALS));
-    localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
-    localStorage.setItem("morocco_pipeline_db_version", CURRENT_DATABASE_VERSION);
-    if (notify) {
-      showToast("Database Reflashed", "All deal statuses aligned (DD done before offer, offer before forecast, forecast before order).");
-    }
-    return true;
+  allDeals = [];
+  globalAuditLogs = [];
+  localStorage.setItem("morocco_pipeline_deals", JSON.stringify([]));
+  localStorage.setItem("morocco_audit_logs", JSON.stringify([]));
+  localStorage.setItem("morocco_pipeline_db_version", CURRENT_DATABASE_VERSION);
+  if (notify) {
+    showToast("Database Cleared", "Test data removed. Pipeline is ready for production.");
   }
-  return false;
+  return true;
 }
 
 window.reflashDatabase = function(notify = true) {
@@ -547,29 +588,28 @@ async function loadDeals() {
     }
   }
 
-  // Automatic reflash if database schema/seed version changed
+  // Automatic clean of legacy test data if version changed
   const storedVersion = localStorage.getItem("morocco_pipeline_db_version");
   if (storedVersion !== CURRENT_DATABASE_VERSION) {
-    console.log("Reflashing database with strictly aligned pipeline statuses...");
-    if (reflashLocalDatabase(false)) {
-      return;
-    }
+    console.log("Upgraded to clean production database. Clearing legacy test records...");
+    reflashLocalDatabase(false);
+    return;
   }
 
-  // Fallback 1: LocalStorage (if non-empty)
+  // Fallback 1: LocalStorage
   const local = localStorage.getItem("morocco_pipeline_deals");
   if (local) {
     try {
       const parsed = JSON.parse(local);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         allDeals = parsed;
         return;
       }
     } catch (e) {}
   }
 
-  // Fallback 2: Synchronous window.SEED_DEALS (immediate offline & file:/// support)
-  if (typeof window !== "undefined" && window.SEED_DEALS && Array.isArray(window.SEED_DEALS) && window.SEED_DEALS.length > 0) {
+  // Fallback 2: Synchronous window.SEED_DEALS
+  if (typeof window !== "undefined" && window.SEED_DEALS && Array.isArray(window.SEED_DEALS)) {
     allDeals = JSON.parse(JSON.stringify(window.SEED_DEALS));
     localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
     localStorage.setItem("morocco_pipeline_db_version", CURRENT_DATABASE_VERSION);
@@ -585,7 +625,6 @@ async function loadDeals() {
       localStorage.setItem("morocco_pipeline_db_version", CURRENT_DATABASE_VERSION);
     }
   } catch (err) {
-    console.warn("Could not fetch initial_data.json:", err);
     allDeals = [];
   }
 }
@@ -600,7 +639,7 @@ async function fetchFromSupabase() {
       .order("id", { ascending: true });
     
     if (error) throw error;
-    if (data && data.length > 0) {
+    if (data) {
       allDeals = data;
       localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
       updateProspectorFilterOptions();
@@ -622,11 +661,11 @@ async function fetchLogsFromSupabase() {
       .limit(200);
 
     if (error) throw error;
-    if (data && data.length > 0) {
+    if (data) {
       globalAuditLogs = data.map(l => ({
         id: l.id,
         dealId: l.deal_id,
-        timestamp: l.timestamp.replace("T", " ").substring(0, 16),
+        timestamp: l.timestamp ? l.timestamp.replace("T", " ").substring(0, 16) : "",
         user: l.user_name,
         action: l.action,
         supplier: l.supplier,

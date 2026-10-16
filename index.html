@@ -26,32 +26,33 @@
     <div class="pin-card">
       <div class="pin-icon"><i data-lucide="shield-check"></i></div>
       <h2>🇲🇦 Morocco Pipeline</h2>
-      <p>Casablanca Office · Select your profile or enter your 4-digit PIN</p>
+      <p>Casablanca Office · Select your profile and enter your 4-digit PIN</p>
       
-      <!-- Quick user switcher -->
-      <div class="quick-users">
-        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Toby', '2309')">
-          <span>👑</span> Toby (Admin)
-        </button>
-        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Said', '1470')">
-          <span>👔</span> Said (Team Leader)
-        </button>
-        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Hamid AIT TAGADIRTE', '1111')">
-          <span>👤</span> Hamid (Buyer)
-        </button>
-        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Marouane CHAHDANE', '2222')">
-          <span>👤</span> Marouane (Buyer)
-        </button>
-        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Raffael BUENOS AIRES', '3333')">
-          <span>👤</span> Raffael (Buyer)
-        </button>
-      </div>
-
       <form id="pinForm">
-        <div class="form-group" style="margin-bottom: 1.25rem;">
-          <input type="password" id="pinInput" maxlength="4" placeholder="••••" autofocus required>
+        <div class="form-group" style="margin-bottom: 1.15rem; text-align: left;">
+          <label for="pinUserSelect" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.45rem; text-transform: uppercase; letter-spacing: 0.05em;">
+            User Profile
+          </label>
+          <select id="pinUserSelect" required>
+            <option value="" disabled selected>-- Select your profile --</option>
+            <option value="Toby">👑 Toby (Admin)</option>
+            <option value="Said">👔 Said (Team Leader)</option>
+            <option value="Hamid AIT TAGADIRTE">👤 Hamid AIT TAGADIRTE (Buyer)</option>
+            <option value="Marouane CHAHDANE">👤 Marouane CHAHDANE (Buyer)</option>
+            <option value="Raffael BUENOS AIRES">👤 Raffael BUENOS AIRES (Buyer)</option>
+          </select>
         </div>
-        <button type="submit" class="btn btn-primary btn-block" style="padding:0.75rem;">Unlock Pipeline</button>
+
+        <div class="form-group" style="margin-bottom: 1.35rem; text-align: left;">
+          <label for="pinInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.45rem; text-transform: uppercase; letter-spacing: 0.05em;">
+            4-Digit PIN Code
+          </label>
+          <input type="password" id="pinInput" maxlength="4" placeholder="••••" autocomplete="current-password" autofocus required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" style="padding:0.85rem; font-weight:700; font-size:0.95rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+          <i data-lucide="lock" style="width:16px; height:16px;"></i> Unlock Pipeline
+        </button>
       </form>
 
       <div id="pinError" class="pin-error">Incorrect PIN code. Please try again.</div>
