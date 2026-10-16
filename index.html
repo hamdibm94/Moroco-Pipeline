@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Morocco Purchasing Pipeline · Casablanca Office · Production Tracking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- ExcelJS for styled multi-tab Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="styles.css?v=2.0">
+</head>
+<body>
+
+  <!-- ==================================================================== -->
+  <!-- 1. PIN LOCK OVERLAY (MULTI-USER SECURITY: TOBY, SAID, ANDREEA)       -->
+  <!-- ==================================================================== -->
+  <div id="pinOverlay" class="pin-overlay">
+    <div class="pin-card">
+      <div class="pin-icon"><i data-lucide="shield-check"></i></div>
+      <h2>🇲🇦 Morocco Pipeline</h2>
+      <p>Casablanca Office · Select your profile or enter your 4-digit PIN</p>
+      
+      <!-- Quick user switcher -->
+      <div class="quick-users">
+        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Toby', '2309')">
+          <span>👑</span> Toby (Admin)
+        </button>
+        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Said', '1470')">
+          <span>👔</span> Said (Team Leader)
+        </button>
+        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Hamid AIT TAGADIRTE', '1111')">
+          <span>👤</span> Hamid (Buyer)
+        </button>
+        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Marouane CHAHDANE', '2222')">
+          <span>👤</span> Marouane (Buyer)
+        </button>
+        <button type="button" class="quick-user-pill" onclick="selectQuickUser('Raffael BUENOS AIRES', '3333')">
+          <span>👤</span> Raffael (Buyer)
+        </button>
+      </div>
+
+      <form id="pinForm">
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <input type="password" id="pinInput" maxlength="4" placeholder="••••" autofocus required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" style="padding:0.75rem;">Unlock Pipeline</button>
+      </form>
+
+      <div id="pinError" class="pin-error">Incorrect PIN code. Please try again.</div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 2. MAIN APPLICATION SHELL                                           -->
+  <!-- ==================================================================== -->
+  <div class="app-shell" id="appShell">
+    
+    <!-- Pinned Sticky Top Header -->
+    <div class="sticky-top-header">
+      
+      <!-- LINE 1: Navbar & Global Actions -->
+      <header class="navbar">
+        <div class="nav-left">
+          <div class="brand-logo">
+            <span class="logo-badge">🇲🇦</span>
+            <div class="brand-titles">
+              <h1>Morocco Pipeline</h1>
+              <span class="sub-brand">Casablanca Office · Procurement & Production Tracking</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Central 3-View Switcher -->
+        <nav class="app-nav-tabs">
+          <button type="button" class="nav-tab-btn active" id="navTabDashboard" data-view="dashboard" title="View Executive Dashboard & Weekly Activities">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Overview</span>
+            <span class="nav-badge-overdue" id="navOverdueBadge" style="display:none;">0</span>
+          </button>
+          <button type="button" class="nav-tab-btn" id="navTabBuyers" data-view="buyers" title="View Buyers Performance & Scoreboard">
+            <i data-lucide="users"></i>
+            <span>Buyers Results</span>
+          </button>
+          <button type="button" class="nav-tab-btn" id="navTabDatabase" data-view="database" title="Work Database file line-by-line">
+            <i data-lucide="table"></i>
+            <span>Database</span>
+            <span class="nav-badge-count" id="navDatabaseCount">0</span>
+          </button>
+        </nav>
+
+        <div class="nav-right">
+          <button id="btnOpenAddModal" class="btn btn-primary btn-sm">
+            <i data-lucide="plus-circle"></i>
+            <span>New Deal</span>
+          </button>
+
+          <button id="btnOpenAuditLogs" class="btn btn-secondary btn-sm" title="View team change history">
+            <i data-lucide="history"></i>
+            <span>Audit Logs</span>
+          </button>
+
+          <button id="btnExportCSV" class="btn btn-secondary btn-sm" title="Export styled executive report to Excel (.xlsx)">
+            <i data-lucide="file-spreadsheet"></i>
+            <span>Export Excel</span>
+          </button>
+
+          <!-- Active User Badge -->
+          <div id="activeUserBadge" class="user-pill" title="Logged in as Administrator">
+            <i data-lucide="user"></i>
+            <span id="activeUserName">Toby (Admin)</span>
+          </div>
+
+          <!-- Theme Toggle -->
+          <button id="btnThemeToggle" class="theme-toggle-btn" title="Toggle Light / Dark Mode">
+            <i data-lucide="sun" id="themeIcon"></i>
+          </button>
+
+          <!-- Admin Settings (Visible to Administrator Only) -->
+          <button id="btnOpenSettings" class="btn btn-icon btn-sm" title="Supabase Cloud & Team Settings" style="display:none;">
+            <i data-lucide="settings"></i>
+          </button>
+
+          <button id="btnLockApp" class="btn btn-icon btn-sm" title="Lock session">
+            <i data-lucide="log-out"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- LINE 2: Multi-Criterion Filters Bar -->
+      <div class="filters-bar">
+        <div class="filter-group">
+          <label><i data-lucide="calendar"></i> Period:</label>
+          <select id="filterPeriodType" class="select-control" title="Filter entire dashboard, action queue, charts & database by period">
+            <option value="All Time" selected>All Time</option>
+            <optgroup label="── By Month ──">
+              <option value="2026-10">October 2026 (Current Month)</option>
+              <option value="2026-09">September 2026</option>
+            </optgroup>
+            <optgroup label="── By Week ──">
+              <option value="W42">Week 42 (Current Week: Oct 12-18)</option>
+              <option value="W41">Week 41 (Oct 05-11)</option>
+              <option value="W40">Week 40 (Sep 28-Oct 04)</option>
+              <option value="W39">Week 39 (Sep 21-27)</option>
+              <option value="W38">Week 38 (Sep 14-20)</option>
+            </optgroup>
+            <optgroup label="── Chart Views ──">
+              <option value="MODE_MONTHLY">Monthly View (Progress per Week)</option>
+              <option value="MODE_WEEKLY">Weekly View (Day by Day)</option>
+            </optgroup>
+          </select>
+          <select id="filterPeriodValue" class="select-control hidden"></select>
+        </div>
+
+        <div class="filter-group">
+          <label><i data-lucide="user-check"></i> Buyer:</label>
+          <select id="filterBuyer" class="select-control">
+            <option value="All">All 3 Buyers</option>
+            <option value="Hamid AIT TAGADIRTE">Hamid AIT TAGADIRTE</option>
+            <option value="Marouane CHAHDANE">Marouane CHAHDANE</option>
+            <option value="Raffael BUENOS AIRES">Raffael BUENOS AIRES</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label><i data-lucide="user"></i> Prospector:</label>
+          <select id="filterProspector" class="select-control" title="Filter by prospector assignment">
+            <option value="All" selected>All (With &amp; Without Prospector)</option>
+            <option value="__NO_PROSPECTOR__">Without Prospector (No Prospector)</option>
+            <optgroup label="── By Prospector Name ──">
+              <option value="Joao">Joao</option>
+              <option value="Karim">Karim</option>
+              <option value="Manuel">Manuel</option>
+              <option value="Nadia">Nadia</option>
+              <option value="Said">Said</option>
+              <option value="Yassine">Yassine</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label><i data-lucide="tag"></i> Category:</label>
+          <select id="filterCategory" class="select-control">
+            <option value="All">All Categories</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label><i data-lucide="briefcase"></i> Supplier Type:</label>
+          <select id="filterSupplierType" class="select-control">
+            <option value="All">All Types</option>
+            <option value="Actif">Active (Actif)</option>
+            <option value="Inactif">Inactive (Inactif)</option>
+            <option value="Occasionnel">Occasional (Occasionnel)</option>
+            <option value="NEW BIZ">NEW BIZ</option>
+          </select>
+        </div>
+
+        <label class="toggle-switch-group">
+          <input type="checkbox" id="filterOngoingOnly">
+          <span>Active Deals (<span id="ongoingCountBadge">0</span>)</span>
+        </label>
+
+        <label class="toggle-switch-group">
+          <input type="checkbox" id="filterStaleOnly">
+          <span style="color:var(--brand-red);">Overdue Deals (<span id="staleCountBadge">0</span>)</span>
+        </label>
+
+        <div class="filter-search-box">
+          <i data-lucide="search"></i>
+          <input type="text" id="searchInput" placeholder="Search supplier, product, offer #, buyer...">
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN BODY: 2-VIEW ARCHITECTURE -->
+    <main class="main-content">
+      
+      <!-- ================================================================ -->
+      <!-- VIEW 1: DASHBOARD ("What do I need to act on today?")           -->
+      <!-- ================================================================ -->
+      <div id="viewDashboard" class="app-view active">
+
+        <!-- ── ZONE 0: DASHBOARD & OVERVIEW PERIOD BANNER ── -->
+        <div class="dashboard-period-strip" id="dashboardPeriodStrip">
+          <div class="period-strip-left">
+            <span class="period-strip-icon"><i data-lucide="calendar"></i></span>
+            <span class="period-strip-label">Active Period:</span>
+            <span class="period-strip-value" id="dashboardPeriodDisplay">All Time</span>
+          </div>
+          <div class="period-strip-right">
+            <span class="badge badge-teal" id="dashboardPeriodModeBadge"><i data-lucide="filter" style="width:11px; height:11px; vertical-align:-1px;"></i> Period Filter Active</span>
+          </div>
+        </div>
+
+        <!-- ── ZONE A: EXECUTIVE KPI CARDS (Clickable Drill-down) ────────── -->
+        <section class="kpi-grid">
+          <div class="kpi-card kpi-clickable" data-kpi-filter="all" title="Click to view all database records in Database view">
+            <div class="kpi-header">
+              <span class="kpi-title">Lot / Détection (Total Sourced)</span>
+              <div class="kpi-icon"><i data-lucide="layers"></i></div>
+            </div>
+            <div class="kpi-value" id="kpiTotalDetections">0</div>
+            <div class="kpi-subtext" id="kpiTotalSub">Total lines in database across Iberian desk</div>
+          </div>
+
+          <div class="kpi-card kpi-active kpi-clickable" data-kpi-filter="active" title="Click to view active pipeline deals in Database view">
+            <div class="kpi-header">
+              <span class="kpi-title">Active Pipeline (VVHT)</span>
+              <div class="kpi-icon" style="color:var(--brand-teal);"><i data-lucide="trending-up"></i></div>
+            </div>
+            <div class="kpi-value" id="kpiActiveValue" style="color:var(--brand-teal);">0 €</div>
+            <div class="kpi-subtext" id="kpiActiveDeals">Deals in negotiation / offer</div>
+          </div>
+
+          <div class="kpi-card kpi-forecast kpi-clickable" id="kpiForecastCard" data-kpi-filter="forecast" title="Click to view forecast & BPA deals in Database view">
+            <div class="kpi-header">
+              <span class="kpi-title">Forecast</span>
+              <span class="badge badge-amber font-mono" id="kpiForecastTotalBadge" style="font-size:0.65rem; padding:1px 5px;" title="Total Forecast Value">Total: 0 €</span>
+            </div>
+            <div class="kpi-forecast-dual">
+              <div class="kpi-forecast-col" data-kpi-forecast="confirmed" title="Click to filter BPA Confirmed">
+                <div class="kpi-forecast-label text-green">
+                  <i data-lucide="check-circle-2" style="width:11px; height:11px; display:inline-block; vertical-align:-1px;"></i> Confirmed
+                </div>
+                <div class="kpi-forecast-val text-green font-mono font-bold" id="kpiForecastConfirmedVal">0 €</div>
+                <div class="kpi-forecast-sub" id="kpiForecastConfirmedCount">0 confirmed</div>
+              </div>
+
+              <div class="kpi-forecast-divider"></div>
+
+              <div class="kpi-forecast-col" data-kpi-forecast="waiting" title="Click to filter Awaiting BPA">
+                <div class="kpi-forecast-label text-amber">
+                  <i data-lucide="clock" style="width:11px; height:11px; display:inline-block; vertical-align:-1px;"></i> Awaiting BPA
+                </div>
+                <div class="kpi-forecast-val text-amber font-mono font-bold" id="kpiForecastWaitingVal">0 €</div>
+                <div class="kpi-forecast-sub" id="kpiForecastWaitingCount">0 awaiting</div>
+              </div>
+            </div>
+            <span id="kpiForecastValue" style="display:none;">0 €</span>
+            <span id="kpiForecastDeals" style="display:none;">0 confirmed BPA · 0 awaiting BPA</span>
+          </div>
+
+          <div class="kpi-card kpi-ordered kpi-clickable" data-kpi-filter="ordered" title="Click to view orders in Database view">
+            <div class="kpi-header">
+              <span class="kpi-title">Orders (VVHT)</span>
+              <div class="kpi-icon" style="color:var(--brand-green);"><i data-lucide="shopping-cart"></i></div>
+            </div>
+            <div class="kpi-value" id="kpiOrderedValue" style="color:var(--brand-green);">0 €</div>
+            <div class="kpi-subtext" id="kpiOrderedDeals">0 orders won</div>
+          </div>
+
+          <div class="kpi-card kpi-stale kpi-clickable" data-kpi-filter="overdue" title="Click to view overdue deals in Database view">
+            <div class="kpi-header">
+              <span class="kpi-title">Overdue Deals</span>
+              <div class="kpi-icon" style="color:var(--brand-red);"><i data-lucide="alert-triangle"></i></div>
+            </div>
+            <div class="kpi-value" id="kpiStaleDeals" style="color:var(--brand-red);">0</div>
+            <div class="kpi-subtext">>5 days without DD or >10 days in offer</div>
+          </div>
+
+          <div class="kpi-card kpi-clickable" data-kpi-filter="ordered" title="Click to view ordered deals margin in Database view">
+            <div class="kpi-header">
+              <span class="kpi-title">Average Margin</span>
+              <div class="kpi-icon"><i data-lucide="percent"></i></div>
+            </div>
+            <div class="kpi-value" id="kpiAvgMargin">0.0%</div>
+            <div class="kpi-subtext" id="kpiAvgMarginSub">On confirmed & ordered deals</div>
+          </div>
+        </section>
+
+        <!-- ── ZONE B: ACTION QUEUE (Priority Follow-ups directly under KPIs) ── -->
+        <section class="action-queue-panel">
+          <div class="panel-header">
+            <div class="action-queue-title">
+              <i data-lucide="zap" style="color:var(--brand-amber);"></i>
+              <h3>Action Queue · Priority Follow-ups</h3>
+              <span class="badge badge-amber font-mono" id="actionQueueBadge">0 to act on</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-dim); display:flex; align-items:center; gap:8px;">
+              <span id="actionQueueSortBadge" class="badge badge-teal font-mono" style="font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">
+                <i data-lucide="arrow-down" style="width:11px; height:11px;"></i>
+                <span id="actionQueueSortText">Ordered by: Current Stage (Pipeline Flow)</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="data-table-wrapper">
+            <table class="dense-table" id="actionQueueTable">
+              <thead>
+                <tr>
+                  <th style="min-width: 140px; cursor:pointer;" class="th-aq-sort" data-sort="deal" title="Click to sort by Deal / Supplier">
+                    <span>Deal / Supplier</span> <i data-lucide="arrow-up-down" style="width:11px; height:11px; opacity:0.6; vertical-align:-1px;"></i>
+                  </th>
+                  <th style="cursor:pointer;" class="th-aq-sort" data-sort="buyer" title="Click to sort by Buyer">
+                    <span>Buyer</span> <i data-lucide="arrow-up-down" style="width:11px; height:11px; opacity:0.6; vertical-align:-1px;"></i>
+                  </th>
+                  <th class="text-center th-aq-sort active-sort" data-sort="stage" style="cursor:pointer; color:var(--brand-teal); font-weight:700;" title="Click to toggle Stage sorting (Pipeline Flow / Reverse / Alphabetical)">
+                    <span>Current Stage</span> <i id="aqIconStage" data-lucide="arrow-down" style="width:11px; height:11px; vertical-align:-1px; color:var(--brand-teal);"></i>
+                  </th>
+                  <th class="text-center th-aq-sort" data-sort="days" style="cursor:pointer;" title="Click to sort by Days in Stage">
+                    <span>Days in Stage</span> <i data-lucide="arrow-up-down" style="width:11px; height:11px; opacity:0.6; vertical-align:-1px;"></i>
+                  </th>
+                  <th style="cursor:pointer;" class="th-aq-sort" data-sort="urgency" title="Click to sort by Urgency">
+                    <span>Urgency &amp; Recommended Action</span> <i data-lucide="arrow-up-down" style="width:11px; height:11px; opacity:0.6; vertical-align:-1px;"></i>
+                  </th>
+                  <th class="text-right" style="min-width: 120px;">Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="actionQueueBody">
+                <!-- Injected via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── ZONE C: PIPELINE STAGE BREAKDOWN (Directly under Action Queue) ── -->
+        <section class="panel-card stage-breakdown-panel">
+          <div class="panel-header">
+            <h3><i data-lucide="pie-chart"></i> Pipeline Stage Breakdown</h3>
+            <span id="activeSharePct" class="badge badge-teal">0% Active</span>
+          </div>
+
+          <div class="stage-share-bar">
+            <div id="barSegLot" class="stage-seg" style="background:#64748B; width:0%;" title="DND (Lot / Prenego / CRV)"></div>
+            <div id="barSegDD" class="stage-seg" style="background:#6366F1; width:0%;" title="Sent Affaire DD"></div>
+            <div id="barSegNego" class="stage-seg" style="background:#F59E0B; width:0%;" title="In Negotiation"></div>
+            <div id="barSegBPA" class="stage-seg" style="background:#2ABFBF; width:0%;" title="Forecast (BPA)"></div>
+            <div id="barSegOrdered" class="stage-seg" style="background:#10B981; width:0%;" title="Ordered"></div>
+            <div id="barSegLost" class="stage-seg" style="background:#6B7280; width:0%;" title="Closed"></div>
+          </div>
+
+          <div class="stage-body-flex">
+            <div class="stage-donut-container">
+              <canvas id="stageChartCanvas"></canvas>
+            </div>
+            <div class="data-table-wrapper stage-table-wrapper">
+              <table class="dense-table">
+                <thead>
+                  <tr>
+                    <th>Stage</th>
+                    <th class="text-center">Deals</th>
+                    <th class="text-right">Value (€)</th>
+                    <th class="text-center">Share</th>
+                  </tr>
+                </thead>
+                <tbody id="stageBreakdownBody">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── ZONE D: BUYERS WEEKLY ACTIVITIES TREND (Inspired by screenshot 1) ── -->
+        <section class="activities-trend-panel">
+          <div class="panel-header trend-header">
+            <div class="trend-title-group">
+              <div class="trend-title-main">
+                <i data-lucide="trending-up" style="color:var(--brand-teal);"></i>
+                <h3>Buyers Weekly Activities · Performance Dynamics</h3>
+                <span class="badge badge-teal" id="trendPeriodBadge">Monthly (Progress per Week)</span>
+              </div>
+              <div class="trend-subtitle">Volume, Prospection Share, Realization (€) & New Biz evolution</div>
+            </div>
+
+            <div class="trend-controls">
+              <div class="trend-view-toggle">
+                <button type="button" class="trend-toggle-btn active" id="btnTrendMonthly" data-trend-mode="monthly" title="Monthly View: Shows progress grouped per week">
+                  <i data-lucide="calendar"></i>
+                  <span>Monthly (Per Week)</span>
+                </button>
+                <button type="button" class="trend-toggle-btn" id="btnTrendWeekly" data-trend-mode="weekly" title="Weekly View: Shows progress day-by-day (Mon-Sun)">
+                  <i data-lucide="calendar-days"></i>
+                  <span>Weekly (Day-by-Day)</span>
+                </button>
+              </div>
+
+              <div class="filter-group-inline">
+                <label for="trendBuyerFilter"><i data-lucide="user"></i> Buyer:</label>
+                <select id="trendBuyerFilter" class="select-control select-sm">
+                  <option value="All">All 3 Buyers</option>
+                  <option value="Hamid AIT TAGADIRTE">Hamid AIT TAGADIRTE</option>
+                  <option value="Marouane CHAHDANE">Marouane CHAHDANE</option>
+                  <option value="Raffael BUENOS AIRES">Raffael BUENOS AIRES</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Chart Row 1: DD Volume & Prospection Share / Sans Suite % -->
+          <div class="activity-row">
+            <div class="activity-chart-box">
+              <div class="activity-chart-header">
+                <div class="activity-chart-title">
+                  <strong>DD Volume</strong> &amp; Prospection Share
+                </div>
+                <div class="activity-legend" id="legendDD">
+                  <span class="legend-item"><span class="legend-dot" style="background:#818cf8;"></span> DD Standard / Actif</span>
+                  <span class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span> DD Prospection</span>
+                  <span class="legend-item"><span class="legend-line" style="background:#0ea5e9;"></span> Prospection Share %</span>
+                  <span class="legend-item"><span class="legend-line" style="background:#ec4899;"></span> Sans Suite %</span>
+                </div>
+              </div>
+              <div class="activity-canvas-container">
+                <canvas id="chartActivityDD"></canvas>
+              </div>
+            </div>
+
+            <div class="activity-side-cards">
+              <div class="activity-stat-card" id="cardDDAvg">
+                <div class="stat-card-label" id="lblDDAvg">AVERAGE</div>
+                <div class="stat-card-main-val font-mono" id="statDDAvgVal">0</div>
+                <div class="stat-card-breakdown">
+                  <div class="stat-sub-row"><span class="stat-sub-val text-teal" id="statDDAvgProsPct">0%</span> <span class="stat-sub-lbl">Pros</span></div>
+                  <div class="stat-sub-row"><span class="stat-sub-val text-rose" id="statDDAvgSansPct">0%</span> <span class="stat-sub-lbl">Sans suite</span></div>
+                </div>
+              </div>
+
+              <div class="activity-stat-card card-total" id="cardDDTotal">
+                <div class="stat-card-label">TOTAL</div>
+                <div class="stat-card-main-val font-mono" id="statDDTotalVal">0</div>
+                <div class="stat-card-breakdown">
+                  <div class="stat-sub-row"><span class="stat-sub-val text-teal" id="statDDTotalProsPct">0%</span> <span class="stat-sub-lbl">Pros</span></div>
+                  <div class="stat-sub-row"><span class="stat-sub-val text-rose" id="statDDTotalSansPct">0%</span> <span class="stat-sub-lbl">Sans suite</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Chart Row 2: Realization (€) & Prospection Share -->
+          <div class="activity-row">
+            <div class="activity-chart-box">
+              <div class="activity-chart-header">
+                <div class="activity-chart-title">
+                  <strong>Realization (€)</strong> &amp; Prospection Share
+                </div>
+                <div class="activity-legend" id="legendRealization">
+                  <span class="legend-item"><span class="legend-dot" style="background:#c084fc;"></span> Realization Standard</span>
+                  <span class="legend-item"><span class="legend-dot" style="background:#7c3aed;"></span> Realization Prospection</span>
+                  <span class="legend-item"><span class="legend-line" style="background:#0d9488;"></span> Prospection Share %</span>
+                </div>
+              </div>
+              <div class="activity-canvas-container">
+                <canvas id="chartActivityRealization"></canvas>
+              </div>
+            </div>
+
+            <div class="activity-side-cards">
+              <div class="activity-stat-card" id="cardRealAvg">
+                <div class="stat-card-label" id="lblRealAvg">AVERAGE</div>
+                <div class="stat-card-main-val font-mono" id="statRealAvgVal">0 €</div>
+                <div class="stat-card-breakdown">
+                  <div class="stat-sub-row"><span class="stat-sub-val text-teal" id="statRealAvgProsPct">0%</span> <span class="stat-sub-lbl">Pros</span></div>
+                </div>
+              </div>
+
+              <div class="activity-stat-card card-total" id="cardRealTotal">
+                <div class="stat-card-label">TOTAL</div>
+                <div class="stat-card-main-val font-mono text-green font-bold" id="statRealTotalVal">0 €</div>
+                <div class="stat-card-breakdown">
+                  <div class="stat-sub-row"><span class="stat-sub-val text-teal" id="statRealTotalProsPct">0%</span> <span class="stat-sub-lbl">Pros</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Chart Row 3: NEW BIZ Volume & Prospection Share -->
+          <div class="activity-row">
+            <div class="activity-chart-box">
+              <div class="activity-chart-header">
+                <div class="activity-chart-title">
+                  <strong>NEW BIZ</strong> Volume &amp; Prospection Share
+                </div>
+                <div class="activity-legend" id="legendNewBiz">
+                  <span class="legend-item"><span class="legend-dot" style="background:#38bdf8;"></span> NEW BIZ Standard</span>
+                  <span class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span> NEW BIZ Prospection</span>
+                  <span class="legend-item"><span class="legend-line" style="background:#1e40af;"></span> NEW BIZ Prospection Share %</span>
+                </div>
+              </div>
+              <div class="activity-canvas-container">
+                <canvas id="chartActivityNewBiz"></canvas>
+              </div>
+            </div>
+
+            <div class="activity-side-cards">
+              <div class="activity-stat-card" id="cardNewBizAvg">
+                <div class="stat-card-label" id="lblNewBizAvg">AVERAGE</div>
+                <div class="stat-card-main-val font-mono" id="statNewBizAvgVal">0</div>
+                <div class="stat-card-breakdown">
+                  <div class="stat-sub-row"><span class="stat-sub-val text-teal" id="statNewBizAvgProsPct">0%</span> <span class="stat-sub-lbl">Pros</span></div>
+                </div>
+              </div>
+
+              <div class="activity-stat-card card-total" id="cardNewBizTotal">
+                <div class="stat-card-label">TOTAL</div>
+                <div class="stat-card-main-val font-mono text-cyan font-bold" id="statNewBizTotalVal">0</div>
+                <div class="stat-card-breakdown">
+                  <div class="stat-sub-row"><span class="stat-sub-val text-teal" id="statNewBizTotalProsPct">0%</span> <span class="stat-sub-lbl">Pros</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ================================================================ -->
+      <!-- VIEW 2: BUYERS RESULTS (Inspired by Screenshot 2)                -->
+      <!-- ================================================================ -->
+      <div id="viewBuyersResults" class="app-view" style="display:none;">
+
+        <!-- Top Header & View Controls Bar -->
+        <div class="buyers-results-header">
+          <div class="buyers-header-left">
+            <div class="buyers-view-switcher">
+              <button type="button" class="btn-subview-toggle" id="btnBuyerCardsView" title="Cards View">
+                <i data-lucide="layout-grid"></i>
+                <span>Show Cards</span>
+              </button>
+              <button type="button" class="btn-subview-toggle active" id="btnBuyerTableView" title="Full Table View">
+                <i data-lucide="table"></i>
+                <span>Show Table</span>
+              </button>
+            </div>
+            <div class="buyers-header-title">
+              <h3><i data-lucide="users"></i> Buyers Results · Buyer Performance Funnel</h3>
+              <span class="sub-brand">Casablanca Iberian Desk · Sourcing, Offers, Forecast &amp; Conversion Dynamics</span>
+            </div>
+          </div>
+
+          <div class="buyers-header-filters">
+            <div class="filter-item-compact">
+              <label><i data-lucide="calendar"></i> Année</label>
+              <select id="buyerFilterYear" class="select-control select-sm">
+                <option value="All">All</option>
+                <option value="2026" selected>2026</option>
+                <option value="2025">2025</option>
+              </select>
+            </div>
+
+            <div class="filter-item-compact">
+              <label><i data-lucide="clock"></i> Week</label>
+              <select id="buyerFilterWeek" class="select-control select-sm">
+                <option value="All" selected>All</option>
+                <option value="W38">W38</option>
+                <option value="W39">W39</option>
+                <option value="W40">W40</option>
+                <option value="W41">W41</option>
+                <option value="W42">W42</option>
+              </select>
+            </div>
+
+            <div class="filter-item-compact">
+              <label><i data-lucide="calendar-range"></i> Mois</label>
+              <select id="buyerFilterMonth" class="select-control select-sm">
+                <option value="All" selected>All</option>
+                <option value="09">9 (Septembre)</option>
+                <option value="10">10 (Octobre)</option>
+                <option value="11">11 (Novembre)</option>
+                <option value="12">12 (Décembre)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE VIEW CONTAINER (Original Table Columns) -->
+        <div id="buyerResultsTableWrapper" class="data-table-wrapper scoreboard-wrapper">
+          <table class="buyers-scoreboard-table" id="buyerScoreboardTable">
+            <thead>
+              <tr>
+                <th><i data-lucide="user"></i> Buyer</th>
+                <th class="text-center" title="Total sourced deals in database"><i data-lucide="layers"></i> Detections</th>
+                <th class="text-center" title="Affaires with Dossier Déposé"><i data-lucide="folder"></i> Sent DD</th>
+                <th class="text-center" title="Offers submitted or received"><i data-lucide="file-text"></i> Offers</th>
+                <th class="text-center" title="Deals currently under negotiation"><i data-lucide="message-square"></i> In Nego</th>
+                <th class="text-right" title="Negotiated deals with BPA forecast"><i data-lucide="trending-up"></i> Forecast (€)</th>
+                <th class="text-center" title="Confirmed purchase orders"><i data-lucide="shopping-cart"></i> Orders</th>
+                <th class="text-right" title="Total order value in EUR"><i data-lucide="banknote"></i> Ordered VVHT</th>
+                <th class="text-right" title="Value of non-closed pipeline deals"><i data-lucide="activity"></i> Active Pipeline</th>
+                <th class="text-center" title="Conversion rate (Orders / Detections)"><i data-lucide="percent"></i> Conv. Rate</th>
+                <th class="text-center" title="Desk activity status signal"><i data-lucide="shield-check"></i> Signal</th>
+              </tr>
+            </thead>
+            <tbody id="buyerScoreboardBody">
+              <!-- Dynamically populated via renderBuyersResults() -->
+            </tbody>
+            <tfoot id="buyerScoreboardFoot">
+              <!-- Dynamically populated via renderBuyersResults() -->
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- CARDS VIEW CONTAINER (Matching Screenshot 2 alternative) -->
+        <div id="buyerResultsCardsWrapper" class="buyer-cards-grid" style="display:none;">
+          <!-- Dynamically populated via renderBuyersResults() -->
+        </div>
+
+      </div>
+
+      <!-- ================================================================ -->
+      <!-- VIEW 3: DATABASE LIST ("Work the file line by line")             -->
+      <!-- ================================================================ -->
+      <div id="viewDatabase" class="app-view" style="display:none;">
+
+        <!-- Top Navigation Bar & Saved Views -->
+        <div class="database-nav-bar">
+          <button type="button" id="btnBackToDashboard" class="btn btn-secondary btn-sm" title="Return to Dashboard">
+            <i data-lucide="arrow-left"></i>
+            <span>Back to Dashboard</span>
+          </button>
+
+          <!-- Centered Quick Saved Views Tabs -->
+          <div class="saved-views-tabs">
+            <button type="button" class="saved-view-btn active" data-saved-view="all" id="savedViewAll" title="View all database deals">
+              <i data-lucide="layers"></i>
+              <span>All Deals</span>
+              <span class="view-count" id="countSavedAll">0</span>
+            </button>
+            <button type="button" class="saved-view-btn" data-saved-view="overdue" id="savedViewOverdue" title="Overdue deals (>5 days without DD or >10 days in offer)">
+              <i data-lucide="alert-triangle"></i>
+              <span>Overdue</span>
+              <span class="view-count count-red" id="countSavedOverdue">0</span>
+            </button>
+            <button type="button" class="saved-view-btn" data-saved-view="forecast" id="savedViewForecast" title="Forecast deals (Green: with BPA ✓ | Orange: awaiting BPA)">
+              <i data-lucide="clock"></i>
+              <span>Forecast</span>
+              <span class="view-count count-amber" id="countSavedForecast">0</span>
+            </button>
+            <button type="button" class="saved-view-btn" data-saved-view="dnd" id="savedViewDND" title="DND - Dossier Non Déposé (CRV en cours, Prenego, Lot / Détection)">
+              <i data-lucide="file-question"></i>
+              <span>DND</span>
+              <span class="view-count" id="countSavedDND">0</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Filter Chips Bar -->
+        <div id="activeFilterChipsBar" class="active-chips-bar" style="display:none;">
+          <span class="chips-label"><i data-lucide="filter" style="width:12px; height:12px;"></i> Active Filters:</span>
+          <div id="filterChipsList" class="chips-list"></div>
+          <button type="button" id="btnClearAllChips" class="btn-clear-chips">Clear All</button>
+        </div>
+
+        <!-- ── FULL PIPELINE DATA GRID ────────────────────────────────────── -->
+        <section class="table-panel">
+          <div class="table-panel-header">
+            <div class="table-panel-title">
+              <i data-lucide="table"></i>
+              <span>Production & Purchasing Tracking Table · Casablanca Office</span>
+              <span class="table-records-count">(Showing <span id="tableFilteredCount">0</span> of <span id="tableTotalCount">0</span> deals)</span>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <button id="btnExportTableCSV" class="btn btn-secondary btn-sm">
+                <i data-lucide="file-spreadsheet"></i>
+                <span>Export Excel</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="pipeline-table-container">
+            <table class="main-pipeline-table" id="mainPipelineTable">
+              <thead>
+                <tr>
+                  <th style="width: 44px;" class="th-sortable" data-sort="id" title="Click to sort by ID (#)">
+                    <span>#</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="th-sortable" data-sort="entry_date" title="Click to sort by Entry Date">
+                    <span>Entry Date</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="th-sortable" data-sort="buyer" title="Click to sort by Buyer">
+                    <span>Buyer</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="th-sortable" data-sort="prospector" title="Click to sort by Prospector">
+                    <span>Prospector</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="th-sortable" data-sort="supplier" title="Click to sort by Supplier">
+                    <span>Supplier</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="th-sortable" data-sort="supplier_type" title="Click to sort by Supplier Type">
+                    <span>Supplier Type</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="th-sortable" data-sort="product" title="Click to sort by Lot Description">
+                    <span>Lot Description</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="th-sortable" data-sort="product_range" title="Click to sort by Product Category">
+                    <span>Product Category</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="text-center th-sortable" data-sort="affaire_status" title="Click to sort by Deal Status">
+                    <span>Deal Status</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="text-center th-sortable" data-sort="offer_number" title="Click to sort by Offer #">
+                    <span>Offer #</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="text-right th-sortable" data-sort="offer_value" title="Click to sort by Offer VVHT">
+                    <span>Offer VVHT (€)</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="text-center th-sortable" data-sort="offer_status" title="Click to sort by Offer Status">
+                    <span>Offer Status</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="text-right th-sortable" data-sort="order_value" title="Click to sort by Order VVHT">
+                    <span>Order VVHT (€)</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="text-right th-sortable" data-sort="margin_value" title="Click to sort by Margin (€)">
+                    <span>Margin (€)</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="text-center th-sortable" data-sort="margin_rate" title="Click to sort by Margin %">
+                    <span>Margin %</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="text-center th-sortable" data-sort="days" title="Click to sort by Days in Stage (Age / Alert)">
+                    <span>Days / Alert</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                  <th class="th-sortable" data-sort="notes" title="Click to sort by Follow-up Notes">
+                    <span>Follow-up Notes</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="pipelineTableBody">
+                <!-- Injected via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 3. SLIDE-OVER DETAIL & EDIT DRAWER (SPLIT 2-COLUMN WIDESCREEN WORKSPACE) -->
+  <!-- ==================================================================== -->
+  <div id="drawerOverlay" class="drawer-overlay">
+    <div class="drawer-panel">
+      
+      <!-- Drawer Header inspired by screenshot -->
+      <div class="drawer-header">
+        <div class="drawer-header-left">
+          <div class="drawer-header-title">
+            <span id="drawerSupplierTitle">Supplier Name</span>
+            <span class="badge badge-success" id="drawerVerifiedBadge" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:2px 8px; border-radius:20px; font-weight:600;"><i data-lucide="check" style="width:12px; height:12px;"></i> Verified</span>
+            <button type="button" class="btn-icon-inline" id="btnEditSupplierNameTitle" title="Edit supplier name"><i data-lucide="edit-3" style="width:14px; height:14px;"></i></button>
+          </div>
+          <div class="drawer-header-badges">
+            <span id="drawerBuyerBadge" class="badge badge-primary">👤 Buyer</span>
+            <span id="drawerProspectorBadge" class="badge badge-teal">🔍 Prospector</span>
+            <span id="drawerCategoryBadge" class="badge badge-amber">🏷️ Category</span>
+            <span id="drawerStatusBadge" class="badge badge-purple">Prenego</span>
+            <span id="drawerDelayBadge" class="badge badge-green">⏱️ 0 days in stage</span>
+          </div>
+        </div>
+
+        <div class="drawer-header-right-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnDrawerExportPDF" title="Export deal sheet as PDF"><i data-lucide="file-text"></i> <span>PDF</span></button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnDrawerShare" title="Copy shareable deal link"><i data-lucide="share-2"></i> <span>Share</span></button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnDrawerDuplicate" title="Duplicate this deal"><i data-lucide="copy"></i> <span>Duplicate</span></button>
+          <button id="btnCloseDrawer" class="btn btn-icon btn-sm" title="Close"><i data-lucide="x"></i></button>
+        </div>
+      </div>
+
+      <!-- Drawer Split Body -->
+      <div class="drawer-body-split">
+        
+        <!-- LEFT COLUMN: Workflow Tabs & Form Fields -->
+        <div class="drawer-left-col">
+          <input type="hidden" id="editDealId">
+          
+          <!-- Admin Emergency Stage Unlock Control -->
+          <div id="drawerAdminUnlockBox" style="display:none; padding:0.4rem 0.85rem; background:rgba(99, 102, 241, 0.1); border-bottom:1px solid rgba(99, 102, 241, 0.2); font-size:0.75rem; color:var(--primary); align-items:center; justify-content:space-between;">
+            <span style="display:flex; align-items:center; gap:5px;">
+              <i data-lucide="shield-alert" style="width:13px; height:13px;"></i>
+              <span id="txtAdminUnlockStatus">Admin: Previous stages locked</span>
+            </span>
+            <button type="button" id="btnAdminToggleUnlock" class="btn btn-secondary btn-sm" style="padding:0.15rem 0.5rem; font-size:0.68rem; height:auto;">
+              <i data-lucide="unlock" style="width:11px; height:11px;"></i>
+              <span id="txtAdminUnlockBtn">Unlock All</span>
+            </button>
+          </div>
+
+          <div class="drawer-single-page">
+
+            <!-- ── GROUP 1: DEAL SOURCING & SUPPLIER (FOURNISSEUR & LOT) ─────── -->
+            <div class="collapsible-group group-stage-1" id="groupSourcingSupplier">
+              <div class="collapsible-group-header" data-toggle-group="groupSourcingSupplier">
+                <div class="group-header-left">
+                  <div class="stage-num-icon"><i data-lucide="building-2"></i></div>
+                  <span class="stage-title-text">1. Sourcing & Supplier (Fournisseur & Lot)</span>
+                </div>
+                <div class="group-header-center">
+                  <!-- Interactive Status Buttons in Header (Replacing dropdown!) -->
+                  <div class="stage-btn-pill-group" id="btnGroupAffaireStatus">
+                    <button type="button" class="stage-btn-pill" data-aff="Lot">Lot</button>
+                    <button type="button" class="stage-btn-pill" data-aff="Prenego">Prenego</button>
+                    <button type="button" class="stage-btn-pill" data-aff="CRV">CRV</button>
+                    <button type="button" class="stage-btn-pill btn-pill-dd" data-aff="DD"><i data-lucide="send" style="width:11px; height:11px;"></i> Sent DD</button>
+                  </div>
+                </div>
+                <div class="group-header-right">
+                  <span id="badgeGroupSourcing" class="badge badge-gray">Prenego</span>
+                  <i data-lucide="chevron-down" class="group-chevron"></i>
+                </div>
+              </div>
+              
+              <div class="collapsible-group-body">
+                <div id="lockNoticeSourcing" class="lock-banner" style="display:none;">
+                  <i data-lucide="lock" style="width:13px; height:13px;"></i>
+                  <span>Sourcing & lot info locked because an offer has been registered.</span>
+                </div>
+
+                <!-- Hidden select kept for backwards compatibility -->
+                <select id="editAffaireStatus" style="display:none;">
+                  <option value="Lot">Lot / Détection (DND)</option>
+                  <option value="Prenego">Prenego (DND)</option>
+                  <option value="CRV">CRV en cours (DND)</option>
+                  <option value="DD">Sent Affaire DD</option>
+                  <option value="Closed">Closed</option>
+                </select>
+
+                <!-- Date of DD Banner (Shown when DD is selected) -->
+                <div class="workflow-status-card" id="boxDDDateNotice" style="background:var(--bg-panel); border:1px solid var(--border-subtle); border-radius:8px; padding:0.75rem; margin-bottom:0.75rem;">
+                  <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); margin-bottom:0.45rem; display:flex; align-items:center; gap:5px;">
+                    <i data-lucide="git-branch" style="width:13px; height:13px;"></i> Deal Sourcing Stage · Date of DD (Sent to PM)
+                  </div>
+                  <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:0.65rem;">
+                    <div class="form-group" id="groupDateDD">
+                      <label>Date of DD (Sent to PM):</label>
+                      <input type="date" id="editDateDD" class="form-control">
+                      <span style="font-size:0.68rem; color:var(--text-dim);">Due within 5 days of DD date</span>
+                    </div>
+                    <div class="form-group" style="display:flex; flex-direction:column; justify-content:center;">
+                      <span style="font-size:0.75rem; color:var(--brand-teal); font-weight:600;"><i data-lucide="info" style="width:12px; height:12px; display:inline-block; vertical-align:-1px;"></i> Once DD is sent, Stage 2 immediately awaits supplier commercial proposal.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Supplier & Lot Details -->
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Detection / Entry Date:</label>
+                    <input type="date" id="editEntryDate" class="form-control">
+                  </div>
+
+                  <div class="form-group">
+                    <label>Assigned Buyer:</label>
+                    <select id="editBuyer" class="form-control">
+                      <option value="Hamid AIT TAGADIRTE">Hamid AIT TAGADIRTE</option>
+                      <option value="Marouane CHAHDANE">Marouane CHAHDANE</option>
+                      <option value="Raffael BUENOS AIRES">Raffael BUENOS AIRES</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Prospector (Sourcing):</label>
+                    <input type="text" id="editProspector" class="form-control" placeholder="Prospector name">
+                  </div>
+
+                  <div class="form-group">
+                    <label>Supplier Type:</label>
+                    <select id="editSupplierType" class="form-control">
+                      <option value="Actif">Active (Actif)</option>
+                      <option value="Inactif">Inactive (Inactif)</option>
+                      <option value="Occasionnel">Occasional (Occasionnel)</option>
+                      <option value="NEW BIZ">NEW BIZ</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group col-span-2">
+                    <label>Supplier Name:</label>
+                    <input type="text" id="editSupplier" class="form-control" required>
+                  </div>
+
+                  <div class="form-group col-span-2">
+                    <label>Product Category:</label>
+                    <select id="editCategory" class="form-control"></select>
+                  </div>
+
+                  <div class="form-group col-span-2">
+                    <label>Lot Description: <span style="font-size:0.7rem; color:var(--text-dim); font-weight:400; float:right;">Markdown supported</span></label>
+                    <textarea id="editProduct" class="form-control" rows="3" placeholder="Quantities, composition, brands, packaging..."></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── GROUP 2: OFFER DETAILS (OFFRE) ───────────────────────────── -->
+            <div class="collapsible-group group-stage-2" id="groupOfferDetails">
+              <div class="collapsible-group-header" data-toggle-group="groupOfferDetails">
+                <div class="group-header-left">
+                  <div class="stage-num-icon"><i data-lucide="file-text"></i></div>
+                  <span class="stage-title-text">2. Offer Details</span>
+                </div>
+                <div class="group-header-center" id="headerStage2StatusCenter">
+                  <!-- Status shows Waiting Offer + days, and Offer Received checkbox -->
+                  <span id="badgeStage2Waiting" class="stage2-waiting-badge" style="display:none;">
+                    <i data-lucide="clock" style="width:12px; height:12px;"></i> Waiting Offer · <span id="txtStage2Days">0</span> days
+                  </span>
+                  <label class="stage-header-checkbox-label" id="lblOfferReceivedHeader">
+                    <input type="checkbox" id="editCheckOfferReceived">
+                    <i data-lucide="check-circle" style="width:14px; height:14px;"></i>
+                    <span>Offer Received</span>
+                  </label>
+                </div>
+                <div class="group-header-right">
+                  <span id="badgeOfferReceivedState" class="badge badge-gray">No offer</span>
+                  <i data-lucide="chevron-down" class="group-chevron"></i>
+                </div>
+              </div>
+
+              <div class="collapsible-group-body">
+                <div id="lockNoticeOffer" class="lock-banner" style="display:none;">
+                  <i data-lucide="lock" style="width:13px; height:13px;"></i>
+                  <span>Offer reference locked (Deal is in negotiation or finalized).</span>
+                </div>
+
+                <!-- Offer Fields Container (Revealed when Offer Received is checked) -->
+                <div id="offerFieldsContainer" style="display:none;">
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label>Offer Date:</label>
+                      <input type="date" id="editOfferDate" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Offer # <span style="color:var(--brand-red); font-weight:700;">*</span>:</label>
+                      <input type="text" id="editOfferNumber" class="form-control font-mono" placeholder="e.g. 1000198440" required>
+                    </div>
+
+                    <div class="form-group col-span-2">
+                      <label>Offer VVHT (€) <span style="color:var(--brand-red); font-weight:700;">*</span>:</label>
+                      <input type="number" step="0.01" id="editOfferValue" class="form-control font-mono" placeholder="0.00" required>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── GROUP 3: NEGOTIATION & FORECAST ──────────────────────────── -->
+            <div class="collapsible-group group-stage-3" id="groupNegotiationForecast">
+              <div class="collapsible-group-header" data-toggle-group="groupNegotiationForecast">
+                <div class="group-header-left">
+                  <div class="stage-num-icon"><i data-lucide="trending-up"></i></div>
+                  <span class="stage-title-text">3. Commercial Negotiation & Forecast</span>
+                </div>
+                <div class="group-header-center">
+                  <!-- Negotiation status buttons in header -->
+                  <div class="stage-btn-pill-group" id="btnGroupOfferStatusPills">
+                    <button type="button" class="stage-btn-pill" data-offer-status="Negociation"><i data-lucide="message-square" style="width:11px; height:11px;"></i> In Negotiation</button>
+                    <button type="button" class="stage-btn-pill btn-pill-forecast" data-offer-status="Forecast"><i data-lucide="trending-up" style="width:11px; height:11px;"></i> Forecast</button>
+                    <button type="button" class="stage-btn-pill btn-pill-reval" data-offer-status="Re-valorisation"><i data-lucide="refresh-cw" style="width:11px; height:11px;"></i> Re-val</button>
+                  </div>
+                  <!-- Header BPA pills displayed dynamically when Forecast is active -->
+                  <div class="stage-btn-pill-group bpa-pill-group" id="btnGroupBPAHeader" style="display:none; margin-left:6px;">
+                    <button type="button" class="stage-btn-pill btn-pill-bpa-wait" data-bpa="false"><i data-lucide="clock" style="width:11px; height:11px;"></i> Awaiting BPA</button>
+                    <button type="button" class="stage-btn-pill btn-pill-bpa-conf" data-bpa="true"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> BPA Confirmed</button>
+                  </div>
+                </div>
+                <div class="group-header-right">
+                  <i data-lucide="chevron-down" class="group-chevron"></i>
+                </div>
+              </div>
+
+              <div class="collapsible-group-body">
+                <div id="lockNoticeNego" class="lock-banner" style="display:none;">
+                  <i data-lucide="lock" style="width:13px; height:13px;"></i>
+                  <span>Negotiation locked (Deal finalized).</span>
+                </div>
+
+                <!-- Hidden select kept for backwards compatibility -->
+                <select id="editOfferStatus" style="display:none;">
+                  <option value="">(No offer submitted)</option>
+                  <option value="Negociation" selected>In Negotiation</option>
+                  <option value="Forecast">Forecast</option>
+                  <option value="Re-valorisation">Re-valuation</option>
+                  <option value="Commandé">Ordered (Won) 🟢</option>
+                  <option value="Closed">Closed ❌</option>
+                </select>
+
+                <div class="form-grid">
+                  <!-- Forecasted VVHT & BPA Received side by side -->
+                  <div class="form-group" id="boxForecastValueCol">
+                    <label>Forecasted VVHT (€):</label>
+                    <input type="number" step="0.01" id="editForecastValue" class="form-control font-mono" placeholder="0.00">
+                  </div>
+
+                  <div class="form-group" id="boxBPACol">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.35rem;">
+                      <label style="margin-bottom:0;">Date Awaiting BPA / Envoyé:</label>
+                      <span id="badgeBPADaysCounter" class="badge badge-amber font-mono" style="font-size:0.75rem; padding:2px 8px;">⏱️ 0 days</span>
+                    </div>
+                    <input type="date" id="editBPADate" class="form-control font-mono">
+                    <input type="checkbox" id="editBPAReceived" style="display:none;">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── GROUP 4: OUTCOME & ORDER DETAILS ─────────────────────────── -->
+            <div class="collapsible-group group-stage-4" id="groupOutcomeOrder">
+              <div class="collapsible-group-header" data-toggle-group="groupOutcomeOrder">
+                <div class="group-header-left">
+                  <div class="stage-num-icon"><i data-lucide="shopping-cart"></i></div>
+                  <span class="stage-title-text">4. Outcome & Order Details</span>
+                </div>
+                <div class="group-header-center">
+                  <!-- Outcome buttons in header -->
+                  <div class="stage-btn-pill-group" id="btnGroupOutcomePills">
+                    <button type="button" class="stage-btn-pill btn-pill-order" id="btnPillOrderWon" data-outcome="won"><i data-lucide="check-circle" style="width:12px; height:12px;"></i> Commandé (Won)</button>
+                    <button type="button" class="stage-btn-pill btn-pill-lost" id="btnPillDealLost" data-outcome="lost"><i data-lucide="x-circle" style="width:12px; height:12px;"></i> Lost</button>
+                  </div>
+                </div>
+                <div class="group-header-right">
+                  <span id="badgeGroupOutcome" class="badge badge-gray">In Progress</span>
+                  <i data-lucide="chevron-down" class="group-chevron"></i>
+                </div>
+              </div>
+
+              <div class="collapsible-group-body">
+                <div id="lockNoticeOutcome" class="lock-banner lock-banner-final" style="display:none;">
+                  <i data-lucide="shield-check" style="width:13px; height:13px;"></i>
+                  <span>Deal finalized. Previous information cannot be changed.</span>
+                </div>
+
+                <!-- Hidden checkboxes for compatibility -->
+                <input type="checkbox" id="editCheckOrdered" style="display:none;">
+                <input type="checkbox" id="editCheckLost" style="display:none;">
+
+                <!-- Order Related Boxes (Automatically shown when Ordered is ticked) -->
+                <div id="orderFieldsContainer" style="display:none; padding:0.85rem; border-radius:8px; background:rgba(16, 185, 129, 0.06); border:1px solid rgba(16, 185, 129, 0.3);">
+                  <div style="font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; color:var(--brand-green); margin-bottom:0.6rem; display:flex; align-items:center; gap:5px;">
+                    <i data-lucide="shopping-cart" style="width:14px; height:14px;"></i> Order & Margin Details
+                  </div>
+                  
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label>Order VVHT (€):</label>
+                      <input type="number" step="0.01" id="editOrderValue" class="form-control font-mono" placeholder="0.00">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Margin (€):</label>
+                      <input type="number" step="0.01" id="editMarginValue" class="form-control font-mono" placeholder="0.00">
+                    </div>
+
+                    <div class="form-group col-span-2">
+                      <label>Calculated Margin Rate (% = Margin / Order VVHT):</label>
+                      <div id="displayCalculatedMargin" class="form-control font-mono" style="background:var(--bg-card); font-weight:700; color:var(--brand-green); display:flex; align-items:center; justify-content:space-between;">
+                        <span id="txtCalculatedMargin">0.0%</span>
+                        <span id="formulaCalculatedMargin" style="font-size:0.72rem; color:var(--text-dim); font-weight:400;">Margin / Order VVHT</span>
+                      </div>
+                    </div>
+
+                    <div class="form-group col-span-2">
+                      <label>Order Date:</label>
+                      <input type="date" id="editOrderDate" class="form-control">
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Activity & Comments Timeline -->
+        <div class="drawer-right-col">
+          <div class="comments-timeline-header">
+            <span><i data-lucide="history"></i> Timeline & Activity Log</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="badge badge-gray" id="commentAuthorBadge">Toby</span>
+            </div>
+          </div>
+
+          <!-- Timeline Filter Tabs (All / Status Changes / Comments) -->
+          <div class="timeline-filter-bar">
+            <button type="button" class="timeline-filter-btn active" data-timeline-filter="all" id="btnFilterTimelineAll" title="Show all entries">
+              <i data-lucide="layers"></i>
+              <span>All</span>
+              <span class="filter-count" id="countFilterAll">0</span>
+            </button>
+            <button type="button" class="timeline-filter-btn" data-timeline-filter="status" id="btnFilterTimelineStatus" title="Show status and stage updates only">
+              <i data-lucide="refresh-cw"></i>
+              <span>Status</span>
+              <span class="filter-count" id="countFilterStatus">0</span>
+            </button>
+            <button type="button" class="timeline-filter-btn" data-timeline-filter="comments" id="btnFilterTimelineComments" title="Show user notes and comments only">
+              <i data-lucide="message-square"></i>
+              <span>Comments</span>
+              <span class="filter-count" id="countFilterComments">0</span>
+            </button>
+          </div>
+
+          <!-- Pinned Follow-up Reminder Card (inspired by screenshot) -->
+          <div class="pinned-followup-card" id="pinnedFollowupCard" style="display:none;">
+            <div class="followup-card-header">
+              <div style="display:flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:700; color:var(--brand-amber);">
+                <i data-lucide="bell" style="width:13px; height:13px;"></i> Follow-up Scheduled
+              </div>
+              <span class="badge badge-amber font-mono" id="txtFollowupDateBadge" style="font-size:0.68rem;">OCT 15, 2026</span>
+            </div>
+            <div class="followup-card-body" id="txtFollowupDesc">
+              Check supplier status and initiate relaunch round.
+            </div>
+          </div>
+
+          <div class="comments-log-list" id="commentsLogList">
+            <!-- Injected via JavaScript -->
+          </div>
+
+          <div class="comment-input-box">
+            <textarea id="newCommentInput" placeholder="Add follow-up note, supplier feedback, reminder date..."></textarea>
+            <div class="comment-input-actions-bar">
+              <div class="comment-toolbar-icons">
+                <button type="button" class="btn-icon-tiny" title="Set follow-up reminder"><i data-lucide="bell"></i></button>
+                <button type="button" class="btn-icon-tiny" title="Attach note link"><i data-lucide="paperclip"></i></button>
+                <button type="button" class="btn-icon-tiny" title="Mention buyer or prospector"><i data-lucide="at-sign"></i></button>
+                <span style="font-size:0.7rem; color:var(--text-dim); margin-left:4px;">Markdown supported</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:0.72rem; color:var(--text-dim);">Posted as <strong id="currentCommentAuthorLabel">Toby</strong></span>
+                <button type="button" id="btnAddComment" class="btn btn-primary btn-sm">
+                  <i data-lucide="send"></i>
+                  <span>Add Note</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Drawer Footer -->
+      <div class="drawer-footer">
+        <button type="button" id="btnDeleteDrawerDeal" class="btn btn-danger btn-sm" style="display:none;">
+          <i data-lucide="trash-2"></i>
+          <span>Delete This Deal</span>
+        </button>
+
+        <div style="display:flex; gap:0.5rem; margin-left:auto;">
+          <button type="button" id="btnCancelDrawer" class="btn btn-secondary btn-sm">Cancel</button>
+          <button type="button" id="btnSaveDrawer" class="btn btn-primary btn-sm">
+            <i data-lucide="check"></i>
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 4. MODAL: ADD NEW DEAL                                               -->
+  <!-- ==================================================================== -->
+  <div id="addDetectionModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i data-lucide="plus-circle"></i> Add New Deal</h3>
+        <button type="button" id="btnCloseAddModal" class="btn btn-icon btn-sm"><i data-lucide="x"></i></button>
+      </div>
+
+      <form id="addDetectionForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Entry Date:</label>
+              <input type="date" id="addEntryDate" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>Assigned Buyer:</label>
+              <select id="addBuyer" class="form-control" required>
+                <option value="Hamid AIT TAGADIRTE">Hamid AIT TAGADIRTE</option>
+                <option value="Marouane CHAHDANE">Marouane CHAHDANE</option>
+                <option value="Raffael BUENOS AIRES">Raffael BUENOS AIRES</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Prospector (Sourcing):</label>
+              <input type="text" id="addProspector" class="form-control" placeholder="Prospector name">
+            </div>
+
+            <div class="form-group">
+              <label>Supplier Type:</label>
+              <select id="addSupplierType" class="form-control">
+                <option value="Actif" selected>Active (Actif)</option>
+                <option value="Inactif">Inactive (Inactif)</option>
+                <option value="Occasionnel">Occasional (Occasionnel)</option>
+                <option value="NEW BIZ">NEW BIZ</option>
+              </select>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Supplier Name:</label>
+              <input type="text" id="addSupplier" class="form-control" placeholder="e.g. CREACIONES TABERNER SL" required>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Product Category:</label>
+              <select id="addCategory" class="form-control" required></select>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Lot Description:</label>
+              <input type="text" id="addProduct" class="form-control" placeholder="e.g. 12,000 pcs lingerie & summer clothing" required>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Initial Note / Follow-up Comment:</label>
+              <textarea id="addNotes" class="form-control" rows="2" placeholder="Contact person, origin of stock, scheduled follow-up..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnCancelAddModal" class="btn btn-secondary btn-sm">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i data-lucide="check"></i>
+            <span>Create Deal</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 5. MODAL: TEAM AUDIT LOGS                                            -->
+  <!-- ==================================================================== -->
+  <div id="auditModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3><i data-lucide="history"></i> Team Modification History (Audit Logs)</h3>
+        <button type="button" id="btnCloseAuditModal" class="btn btn-icon btn-sm"><i data-lucide="x"></i></button>
+      </div>
+
+      <div style="padding: 0.75rem 1.25rem; background:var(--bg-card); border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.8rem;">
+          <label><strong>Filter by author:</strong></label>
+          <select id="filterAuditAuthor" class="select-control">
+            <option value="All">All (Toby, Said, Andreea...)</option>
+            <option value="Toby">👑 Toby (Admin)</option>
+            <option value="Said">👤 Said</option>
+            <option value="Andreea">👤 Andreea</option>
+          </select>
+        </div>
+
+        <button type="button" id="btnClearAuditLogs" class="btn btn-danger btn-sm" style="display:none;">
+          <i data-lucide="trash-2"></i> Clear Audit Log
+        </button>
+      </div>
+
+      <div class="modal-body" style="max-height: 520px;">
+        <div class="comments-log-list" id="globalAuditLogList">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('auditModal').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 6. MODAL: TEAM & PIN ACCOUNTS MANAGEMENT (ADMIN)                     -->
+  <!-- ==================================================================== -->
+  <div id="manageAccountsModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3><i data-lucide="users"></i> Team Profile & PIN Management</h3>
+        <button type="button" id="btnCloseAccountsModal" class="btn btn-icon btn-sm"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <p style="font-size:0.82rem; color:var(--text-dim);">Configured team accounts for Casablanca Office access:</p>
+          <button type="button" id="btnOpenAddAccount" class="btn btn-secondary btn-sm">
+            <i data-lucide="user-plus"></i> Add Account
+          </button>
+        </div>
+
+        <div class="data-table-wrapper">
+          <table class="dense-table">
+            <thead>
+              <tr>
+                <th>Team Member</th>
+                <th class="text-center">Role</th>
+                <th class="text-center">PIN Code</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userAccountsTableBody">
+              <!-- Injected via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Inline Account Edit / Add Box -->
+        <div id="accountFormBox" style="display:none; background:var(--bg-card); border:1px solid var(--border-medium); border-radius:8px; padding:1rem; margin-top:0.75rem;">
+          <h4 id="accountFormTitle" style="font-size:0.9rem; font-weight:700; margin-bottom:0.75rem;">Edit Account</h4>
+          <input type="hidden" id="editAccountOriginalName">
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label>User Name:</label>
+              <input type="text" id="accName" class="form-control" placeholder="e.g. Said">
+            </div>
+
+            <div class="form-group">
+              <label>Role:</label>
+              <select id="accRole" class="form-control">
+                <option value="Admin">Admin</option>
+                <option value="Manager">Manager</option>
+                <option value="Buyer">Buyer</option>
+                <option value="Prospector">Prospector</option>
+                <option value="Team Member">Team Member</option>
+              </select>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>PIN Code (4 digits):</label>
+              <input type="password" id="accPin" maxlength="4" class="form-control font-mono" placeholder="••••">
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.85rem;">
+            <button type="button" id="btnCancelAccountForm" class="btn btn-secondary btn-sm">Cancel</button>
+            <button type="button" id="btnSaveAccount" class="btn btn-primary btn-sm">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('manageAccountsModal').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 7. MODAL: SUPABASE SETTINGS & CLOUD SYNC                             -->
+  <!-- ==================================================================== -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3><i data-lucide="cloud"></i> Supabase Cloud Database & Settings</h3>
+        <button type="button" id="btnCloseSettings" class="btn btn-icon btn-sm"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.4;">
+          Real-time cloud database synchronization powered by <strong>Supabase</strong>. Changes are synchronized live across all connected devices and browsers.
+        </p>
+
+        <div class="form-group">
+          <label>Supabase Project URL:</label>
+          <input type="url" id="cfgSupabaseUrl" class="form-control font-mono" placeholder="https://your-project.supabase.co">
+        </div>
+
+        <div class="form-group">
+          <label>Anon / Public API Key:</label>
+          <input type="password" id="cfgSupabaseKey" class="form-control font-mono" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+        </div>
+
+        <div class="form-group">
+          <label>Supabase Table Name:</label>
+          <input type="text" id="cfgSupabaseTable" class="form-control font-mono" value="morocco_pipeline">
+        </div>
+
+        <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+          <button type="button" id="btnTestSupabase" class="btn btn-secondary btn-sm">
+            <i data-lucide="refresh-cw"></i> Test Connection
+          </button>
+          <button type="button" id="btnOpenManageAccounts" class="btn btn-secondary btn-sm">
+            <i data-lucide="shield"></i> Manage Profiles & PINs
+          </button>
+        </div>
+
+        <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:700; font-size:0.82rem;">Reset to Factory Baseline</div>
+            <div style="font-size:0.75rem; color:var(--text-dim);">Reloads initial 23 records from Suivi_Prod-Team-Casa.xlsx</div>
+          </div>
+          <button type="button" id="btnOpenResetDBModal" class="btn btn-danger btn-sm">
+            <i data-lucide="rotate-ccw"></i> Reset Database
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('settingsModal').classList.remove('open')">Close</button>
+        <button type="button" id="btnSaveSettings" class="btn btn-primary btn-sm">
+          <i data-lucide="check"></i> Save Connection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- 8. MODAL: DATABASE RESET CONFIRMATION                                -->
+  <!-- ==================================================================== -->
+  <div id="resetDatabaseModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 style="color:var(--brand-red);"><i data-lucide="alert-octagon"></i> Confirmation Required</h3>
+        <button type="button" id="btnCloseResetDBModal" class="btn btn-icon btn-sm"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size:0.85rem; line-height:1.4;">
+          ⚠️ This action will reset the entire pipeline to the original baseline records from <code>Suivi_Prod-Team-Casa.xlsx</code>.
+        </p>
+        <p style="font-size:0.82rem; color:var(--text-dim); margin-top:0.5rem;">
+          To confirm, please type <strong>RESET</strong> below:
+        </p>
+        <input type="text" id="inputConfirmResetCode" class="form-control font-mono" placeholder="Type RESET" style="text-align:center; font-weight:700; font-size:1.1rem; margin-top:0.5rem;">
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="btnCancelResetDB" class="btn btn-secondary btn-sm">Cancel</button>
+        <button type="button" id="btnExecuteResetDB" class="btn btn-danger btn-sm" disabled>Confirm Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Initial Synchronous Dataset (guaranteed offline & file:/// support) -->
+  <script src="initial_data.js?v=2.0"></script>
+  <!-- App Script -->
+  <script src="app.js?v=2.0"></script>
+</body>
+</html>
