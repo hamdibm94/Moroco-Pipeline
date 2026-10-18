@@ -680,15 +680,17 @@ async function fetchLogsFromSupabase() {
 
 async function saveDealRecord(deal) {
   deal.offer_value = parseFloat(deal.offer_value) || 0;
+  deal.purchase_price = parseFloat(deal.purchase_price) || 0;
   deal.order_value = parseFloat(deal.order_value) || 0;
   deal.margin_value = parseFloat(deal.margin_value) || 0;
   deal.dd_date = deal.dd_date || null;
   deal.bpa_date = deal.bpa_date || null;
   deal.bpa_received = Boolean(deal.bpa_received);
   
-  // Taux de marge (%) = (Marge / VVHT Commande) * 100
-  if (deal.order_value > 0 && deal.margin_value > 0) {
-    deal.margin_rate = parseFloat(((deal.margin_value / deal.order_value) * 100).toFixed(2));
+  // Taux de marge (%) = (Marge / (Prix d'Achat + Marge)) * 100
+  const denom = (deal.purchase_price + deal.margin_value > 0) ? (deal.purchase_price + deal.margin_value) : deal.order_value;
+  if (denom > 0 && deal.margin_value > 0) {
+    deal.margin_rate = parseFloat(((deal.margin_value / denom) * 100).toFixed(2));
   } else {
     deal.margin_rate = 0;
   }
@@ -1191,24 +1193,24 @@ function updateProspectorFilterOptions() {
   // 1. All (With and without prospector)
   const optAll = document.createElement("option");
   optAll.value = "All";
-  optAll.textContent = `All (With & Without Prospector · ${allDeals.length})`;
+  optAll.textContent = `All (${allDeals.length})`;
   prSelect.appendChild(optAll);
 
   // 2. Without Prospector (No prospector assigned)
   const optNone = document.createElement("option");
   optNone.value = "__NO_PROSPECTOR__";
-  optNone.textContent = `Without Prospector (No Prospector · ${emptyCount})`;
+  optNone.textContent = `None (${emptyCount})`;
   prSelect.appendChild(optNone);
 
   // 3. Selection of prospectors per name
   if (sortedNames.length > 0) {
     const grp = document.createElement("optgroup");
-    grp.label = "── By Prospector Name ──";
+    grp.label = "── By Name ──";
     sortedNames.forEach(name => {
       const cnt = prospectorCounts.get(name) || 0;
       const opt = document.createElement("option");
       opt.value = name;
-      opt.textContent = `${name} (${cnt} deals)`;
+      opt.textContent = `${name} (${cnt})`;
       grp.appendChild(opt);
     });
     prSelect.appendChild(grp);
@@ -1328,6 +1330,13 @@ function initFilters() {
       applyFiltersAndRender();
     });
   }
+
+  const btnClearFilters = document.getElementById("btnClearFilters");
+  if (btnClearFilters) {
+    btnClearFilters.addEventListener("click", () => {
+      resetAllFilters();
+    });
+  }
 }
 
 function syncBuyersResultsFilters(monthVal, weekVal) {
@@ -1379,6 +1388,17 @@ function applyFiltersAndRender() {
   const ongoingCount = baseDeals.filter(d => getDaysOpen(d) !== "Closed").length;
   const ongoingBadge = document.getElementById("ongoingCountBadge");
   if (ongoingBadge) ongoingBadge.textContent = ongoingCount;
+
+  // Sync toggle pill indicators and checkboxes
+  const ongoEl = document.getElementById("filterOngoingOnly");
+  if (ongoEl && ongoEl.checked !== !!filterOngoingOnlyVal) ongoEl.checked = !!filterOngoingOnlyVal;
+  const lblOngo = document.getElementById("lblFilterOngoingOnly");
+  if (lblOngo) lblOngo.classList.toggle("is-checked", !!filterOngoingOnlyVal);
+
+  const staleEl = document.getElementById("filterStaleOnly");
+  if (staleEl && staleEl.checked !== !!filterStaleOnlyVal) staleEl.checked = !!filterStaleOnlyVal;
+  const lblStale = document.getElementById("lblFilterStaleOnly");
+  if (lblStale) lblStale.classList.toggle("is-checked", !!filterStaleOnlyVal);
 
   filteredDeals = baseDeals.filter(d => {
     // Period filter (matches against deal milestone dates: entry, offer, order, dd)
@@ -2650,12 +2670,14 @@ function renderBuyersResults() {
 }
 
 function renderMarginRateBadge(deal) {
-  const ordVal = parseFloat(deal.order_value) || 0;
+  const purVal = parseFloat(deal.purchase_price) || 0;
   const marVal = parseFloat(deal.margin_value) || 0;
+  const ordVal = parseFloat(deal.order_value) || 0;
   let rate = 0;
 
-  if (ordVal > 0 && marVal > 0) {
-    rate = (marVal / ordVal) * 100;
+  const denom = (purVal + marVal > 0) ? (purVal + marVal) : ordVal;
+  if (denom > 0 && marVal > 0) {
+    rate = (marVal / denom) * 100;
   } else if (parseFloat(deal.margin_rate) > 0) {
     rate = parseFloat(deal.margin_rate);
   }
@@ -2663,14 +2685,18 @@ function renderMarginRateBadge(deal) {
   if (rate <= 0) return `<span class="badge badge-gray font-mono">—</span>`;
 
   const formattedRate = rate.toFixed(1) + "%";
+  const titleText = purVal > 0
+    ? `Margin: ${formatCurrencyEUR(marVal)} / (${formatCurrencyEUR(purVal)} + ${formatCurrencyEUR(marVal)})`
+    : `Margin: ${formatCurrencyEUR(marVal)} / Order: ${formatCurrencyEUR(ordVal)}`;
+
   if (rate >= 25) {
-    return `<span class="badge badge-ordered font-mono font-bold" title="Margin: ${formatCurrencyEUR(marVal)} / Order: ${formatCurrencyEUR(ordVal)}">${formattedRate}</span>`;
+    return `<span class="badge badge-ordered font-mono font-bold" title="${titleText}">${formattedRate}</span>`;
   } else if (rate >= 15) {
-    return `<span class="badge badge-teal font-mono font-bold" title="Margin: ${formatCurrencyEUR(marVal)} / Order: ${formatCurrencyEUR(ordVal)}">${formattedRate}</span>`;
+    return `<span class="badge badge-teal font-mono font-bold" title="${titleText}">${formattedRate}</span>`;
   } else if (rate >= 8) {
-    return `<span class="badge badge-amber font-mono font-bold" title="Margin: ${formatCurrencyEUR(marVal)} / Order: ${formatCurrencyEUR(ordVal)}">${formattedRate}</span>`;
+    return `<span class="badge badge-amber font-mono font-bold" title="${titleText}">${formattedRate}</span>`;
   } else {
-    return `<span class="badge badge-rose font-mono font-bold" title="Margin: ${formatCurrencyEUR(marVal)} / Order: ${formatCurrencyEUR(ordVal)}">${formattedRate}</span>`;
+    return `<span class="badge badge-rose font-mono font-bold" title="${titleText}">${formattedRate}</span>`;
   }
 }
 
@@ -3106,9 +3132,25 @@ function renderFilterChips() {
     });
   }
 
+  // Update top filters-bar Clear button
+  const btnClearFilters = document.getElementById("btnClearFilters");
+  const txtClearLabel = document.getElementById("txtClearFiltersLabel");
+  if (btnClearFilters) {
+    if (chips.length > 0) {
+      btnClearFilters.classList.add("has-active");
+      if (txtClearLabel) txtClearLabel.textContent = `Clear Filters (${chips.length})`;
+      btnClearFilters.title = `Reset ${chips.length} active filter${chips.length > 1 ? 's' : ''}`;
+    } else {
+      btnClearFilters.classList.remove("has-active");
+      if (txtClearLabel) txtClearLabel.textContent = "Clear Filters";
+      btnClearFilters.title = "No active filters to reset";
+    }
+  }
+
   chipsList.innerHTML = "";
   if (chips.length === 0) {
     chipsBar.style.display = "none";
+    initLucide();
     return;
   }
 
@@ -3129,33 +3171,62 @@ function renderFilterChips() {
 
   const clearAllBtn = document.getElementById("btnClearAllChips");
   if (clearAllBtn) {
-    clearAllBtn.onclick = () => {
-      const pType = document.getElementById("filterPeriodType");
-      if (pType) pType.value = "All Time";
-      filterPeriod = "All Time";
-      filterPeriodVal = "";
-      syncBuyersResultsFilters("All", "All");
-
-      document.getElementById("filterBuyer").value = "All";
-      filterBuyerVal = "All";
-      document.getElementById("filterCategory").value = "All";
-      filterCategoryVal = "All";
-      document.getElementById("filterSupplierType").value = "All";
-      filterSupplierTypeVal = "All";
-      document.getElementById("filterProspector").value = "All";
-      filterProspectorVal = "All";
-      document.getElementById("filterOngoingOnly").checked = false;
-      filterOngoingOnlyVal = false;
-      document.getElementById("filterStaleOnly").checked = false;
-      filterStaleOnlyVal = false;
-      document.getElementById("searchInput").value = "";
-      filterSearchVal = "";
-      currentSavedView = "all";
-      applyFiltersAndRender();
-    };
+    clearAllBtn.onclick = () => resetAllFilters();
   }
 
   initLucide();
+}
+
+function resetAllFilters() {
+  const pType = document.getElementById("filterPeriodType");
+  if (pType) pType.value = "All Time";
+  filterPeriod = "All Time";
+  filterPeriodVal = "";
+  syncBuyersResultsFilters("All", "All");
+
+  const filterBuyerEl = document.getElementById("filterBuyer");
+  if (filterBuyerEl) {
+    if (isBuyerUser()) {
+      filterBuyerEl.value = currentUser;
+      filterBuyerVal = currentUser;
+    } else {
+      filterBuyerEl.value = "All";
+      filterBuyerVal = "All";
+    }
+  }
+
+  const catEl = document.getElementById("filterCategory");
+  if (catEl) catEl.value = "All";
+  filterCategoryVal = "All";
+
+  const supTypeEl = document.getElementById("filterSupplierType");
+  if (supTypeEl) supTypeEl.value = "All";
+  filterSupplierTypeVal = "All";
+
+  const prosEl = document.getElementById("filterProspector");
+  if (prosEl) prosEl.value = "All";
+  filterProspectorVal = "All";
+
+  const ongoEl = document.getElementById("filterOngoingOnly");
+  if (ongoEl) ongoEl.checked = false;
+  filterOngoingOnlyVal = false;
+
+  const staleEl = document.getElementById("filterStaleOnly");
+  if (staleEl) staleEl.checked = false;
+  filterStaleOnlyVal = false;
+
+  const searchEl = document.getElementById("searchInput");
+  if (searchEl) searchEl.value = "";
+  filterSearchVal = "";
+
+  currentSavedView = "all";
+  document.querySelectorAll(".saved-views-tabs .saved-view-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.savedView === "all");
+  });
+
+  updatePeriodValueOptions();
+  applyFiltersAndRender();
+  showToast("Filters Cleared", "All active filters have been reset.");
 }
 
 function initDashboardInteractions() {
@@ -3260,7 +3331,7 @@ function initDashboardInteractions() {
         pipelineTableSort.direction = (pipelineTableSort.direction === "asc") ? "desc" : "asc";
       } else {
         pipelineTableSort.column = col;
-        pipelineTableSort.direction = (col === "offer_value" || col === "order_value" || col === "margin_value" || col === "margin_rate" || col === "days") ? "desc" : "asc";
+        pipelineTableSort.direction = (col === "offer_value" || col === "purchase_price" || col === "order_value" || col === "margin_value" || col === "margin_rate" || col === "days") ? "desc" : "asc";
       }
       renderTable();
     });
@@ -3288,16 +3359,12 @@ function renderTable() {
     const col = th.dataset.sort;
     const isActive = (col === pipelineTableSort.column);
     th.classList.toggle("active-sort", isActive);
-    const icon = th.querySelector("i");
+    const icon = th.querySelector(".sort-icon") || th.querySelector("i");
     if (icon) {
       if (isActive) {
         icon.setAttribute("data-lucide", pipelineTableSort.direction === "asc" ? "arrow-up" : "arrow-down");
-        icon.style.opacity = "1";
-        icon.style.color = "var(--brand-teal)";
       } else {
         icon.setAttribute("data-lucide", "arrow-up-down");
-        icon.style.opacity = "0.45";
-        icon.style.color = "";
       }
     }
   });
@@ -3305,7 +3372,7 @@ function renderTable() {
   if (filteredDeals.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="18" style="text-align:center; padding:2.5rem; color:var(--text-dim);">
+        <td colspan="19" style="text-align:center; padding:2.5rem; color:var(--text-dim);">
           <i data-lucide="inbox" style="width:36px; height:36px; margin-bottom:0.5rem; opacity:0.6;"></i>
           <div>No deals found matching your search criteria.</div>
         </td>
@@ -3372,6 +3439,12 @@ function renderTable() {
 
       case "offer_status":
         return String(a.offer_status || "").localeCompare(String(b.offer_status || "")) * dir;
+
+      case "purchase_price": {
+        const vA = parseFloat(a.purchase_price) || 0;
+        const vB = parseFloat(b.purchase_price) || 0;
+        return (vA - vB) * dir;
+      }
 
       case "order_value": {
         const vA = parseFloat(a.order_value) || 0;
@@ -3470,55 +3543,85 @@ function renderTable() {
       }
     }
     tr.innerHTML = `
-      <td class="font-mono" style="color:var(--text-dim); font-size:0.75rem;">${idx + 1}</td>
-      <td class="font-mono font-semibold" style="color:var(--brand-teal); font-size:0.75rem;">${escapeHtml(deal.affaire_number || "—")}</td>
+      <td class="col-sticky-1 font-mono" style="color:var(--text-dim); font-size:0.75rem; text-align:center;">${idx + 1}</td>
+      <td class="col-sticky-2 font-mono font-semibold" style="color:var(--brand-teal); font-size:0.75rem;">${escapeHtml(deal.affaire_number || "—")}</td>
       <td class="font-mono">${escapeHtml(formatDateFR(deal.entry_date))}</td>
       <td class="font-semibold">${escapeHtml(deal.buyer)}</td>
       <td class="text-teal font-semibold">${escapeHtml(deal.prospector || "—")}</td>
       <td class="font-bold">${escapeHtml(deal.supplier)}</td>
-      <td>${supBadge}</td>
-      <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(deal.product || "—")}</td>
+      <td class="text-center">${supBadge}</td>
+      <td style="max-width:190px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(deal.product || '')}">${escapeHtml(deal.product || "—")}</td>
       <td><span class="badge badge-gray">${escapeHtml(getProductCategoryLabel(deal.product_range))}</span></td>
       <td class="text-center">${affBadge}</td>
       <td class="text-center font-mono">${escapeHtml(deal.offer_number || "—")}</td>
       <td class="text-right font-mono font-bold text-green">${deal.offer_value > 0 ? formatCurrencyEUR(deal.offer_value) : "—"}</td>
       <td class="text-center">${offBadge}</td>
+      <td class="text-right font-mono font-bold text-amber">${deal.purchase_price > 0 ? formatCurrencyEUR(deal.purchase_price) : "—"}</td>
       <td class="text-right font-mono font-bold ${deal.order_value > 0 ? 'text-green' : ''}">${deal.order_value > 0 ? formatCurrencyEUR(deal.order_value) : "—"}</td>
       <td class="text-right font-mono font-bold text-green">${deal.margin_value > 0 ? formatCurrencyEUR(deal.margin_value) : "—"}</td>
       <td class="text-center font-mono font-bold">${renderMarginRateBadge(deal)}</td>
       <td class="text-center">${stale ? `<span class="badge badge-stale" title="${days} days (working days, weekends excluded)">${stale}</span>` : `<span class="badge ${delayClass}" title="${days} days (working days, weekends excluded)">${days === "Closed" ? "Closed" : days + " days"}</span>`}</td>
-      <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.75rem; color:var(--text-dim);">${escapeHtml(deal.notes || "—")}</td>
+      <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.75rem; color:var(--text-dim);" title="${escapeHtml(deal.notes || '')}">${escapeHtml(deal.notes || "—")}</td>
     `;
     tr.addEventListener("click", () => openDrawer(deal));
     tbody.appendChild(tr);
   });
+
+  initLucide();
 }
 
 function updateDrawerMarginDisplay() {
-  const ordEl = document.getElementById("editOrderValue");
+  const purEl = document.getElementById("editPurchasePrice");
   const marEl = document.getElementById("editMarginValue");
+  const ordEl = document.getElementById("editOrderValue");
   const txtBadge = document.getElementById("txtCalculatedMargin");
   const formulaLabel = document.getElementById("formulaCalculatedMargin");
 
-  const ordVal = parseFloat(ordEl ? ordEl.value : 0) || 0;
+  const purVal = parseFloat(purEl ? purEl.value : 0) || 0;
   const marVal = parseFloat(marEl ? marEl.value : 0) || 0;
+  const ordVal = parseFloat(ordEl ? ordEl.value : 0) || 0;
 
-  if (ordVal > 0 && marVal > 0) {
-    const rate = ((marVal / ordVal) * 100).toFixed(1);
+  // Auto-sync Order VVHT = Purchase Price + Margin when typing Purchase or Margin
+  if (document.activeElement === purEl || document.activeElement === marEl) {
+    if (purVal > 0 && marVal > 0 && ordEl) {
+      ordEl.value = (purVal + marVal).toFixed(2);
+    }
+  } else if (document.activeElement === ordEl) {
+    // If typing Order VVHT directly
+    if (ordVal > 0 && purVal > 0 && marEl) {
+      marEl.value = Math.max(0, ordVal - purVal).toFixed(2);
+    } else if (ordVal > 0 && marVal > 0 && purVal === 0 && purEl) {
+      purEl.value = Math.max(0, ordVal - marVal).toFixed(2);
+    }
+  }
+
+  const currentPur = parseFloat(purEl ? purEl.value : 0) || 0;
+  const currentMar = parseFloat(marEl ? marEl.value : 0) || 0;
+  const currentOrd = parseFloat(ordEl ? ordEl.value : 0) || 0;
+
+  // Formula: value of margin / (purchase price + margin)
+  const denom = (currentPur + currentMar > 0) ? (currentPur + currentMar) : currentOrd;
+
+  if (denom > 0 && currentMar > 0) {
+    const rate = ((currentMar / denom) * 100).toFixed(1);
     if (txtBadge) {
       txtBadge.textContent = `${rate}%`;
       txtBadge.style.color = rate >= 20 ? "var(--brand-green)" : rate >= 10 ? "var(--brand-amber)" : "var(--brand-rose)";
     }
     if (formulaLabel) {
-      formulaLabel.textContent = `${formatCurrencyEUR(marVal)} / ${formatCurrencyEUR(ordVal)}`;
+      if (currentPur > 0) {
+        formulaLabel.textContent = `${formatCurrencyEUR(currentMar)} / (${formatCurrencyEUR(currentPur)} + ${formatCurrencyEUR(currentMar)})`;
+      } else {
+        formulaLabel.textContent = `${formatCurrencyEUR(currentMar)} / ${formatCurrencyEUR(currentOrd)}`;
+      }
     }
-  } else if (ordVal > 0) {
+  } else if (denom > 0) {
     if (txtBadge) {
       txtBadge.textContent = "0.0%";
       txtBadge.style.color = "var(--text-dim)";
     }
     if (formulaLabel) {
-      formulaLabel.textContent = `0 € / ${formatCurrencyEUR(ordVal)}`;
+      formulaLabel.textContent = `0 € / ${formatCurrencyEUR(denom)}`;
     }
   } else {
     if (txtBadge) {
@@ -3526,7 +3629,7 @@ function updateDrawerMarginDisplay() {
       txtBadge.style.color = "var(--text-dim)";
     }
     if (formulaLabel) {
-      formulaLabel.textContent = "Enter Order VVHT & Margin";
+      formulaLabel.textContent = "Enter Purchase Price & Margin";
     }
   }
 }
@@ -3611,6 +3714,7 @@ function updateDrawerLockingState(deal, forceUnlock = false) {
   const lockNoticeNego = document.getElementById("lockNoticeNego");
   const lockNoticeOutcome = document.getElementById("lockNoticeOutcome");
   const txtUnlockBtn = document.getElementById("txtAdminUnlockBtn");
+  const txtUnlockStatus = document.getElementById("txtAdminUnlockStatus");
   const isOwner = isTeamLeaderOrAdmin() || (deal.buyer === currentUser);
   const saveBtn = document.getElementById("btnSaveDrawer");
   if (saveBtn) {
@@ -4016,6 +4120,13 @@ function openDrawer(deal) {
   if (checkLost) checkLost.checked = hasOffer && isLost;
   if (orderFieldsContainer) orderFieldsContainer.style.display = (hasOffer && isOrdered) ? "block" : "none";
 
+  const purValEl = document.getElementById("editPurchasePrice");
+  if (purValEl) {
+    purValEl.value = (deal.purchase_price && parseFloat(deal.purchase_price) > 0) ? deal.purchase_price : "";
+    purValEl.disabled = false;
+    purValEl.classList.remove("field-locked");
+  }
+
   const ordValEl = document.getElementById("editOrderValue");
   if (ordValEl) {
     if (deal.order_value && parseFloat(deal.order_value) > 0) {
@@ -4325,6 +4436,7 @@ function initModalsAndDrawer() {
         forecast_value: 0,
         offer_status: "",
         bpa_received: false,
+        purchase_price: 0,
         order_value: 0,
         margin_value: 0,
         margin_rate: 0,
@@ -4625,6 +4737,12 @@ function initModalsAndDrawer() {
         const ordValInput = document.getElementById("editOrderValue");
         const fVal = (fCastInput && parseFloat(fCastInput.value) > 0) ? fCastInput.value : (currentDrawerDeal?.forecast_value ? String(currentDrawerDeal.forecast_value) : "");
         const offVal = (offValInput && parseFloat(offValInput.value) > 0) ? offValInput.value : (currentDrawerDeal?.offer_value ? String(currentDrawerDeal.offer_value) : "");
+
+        const purValInput = document.getElementById("editPurchasePrice");
+        if (purValInput) {
+          purValInput.disabled = false;
+          purValInput.classList.remove("field-locked");
+        }
 
         if (ordValInput) {
           if (!ordValInput.value || parseFloat(ordValInput.value) <= 0) {
@@ -5062,8 +5180,10 @@ function initModalsAndDrawer() {
   if (btnCancelDrawer) btnCancelDrawer.addEventListener("click", () => drawerOverlay.classList.remove("open"));
 
   // Drawer Margin Live Calculation Listeners
+  const editPurchasePriceInput = document.getElementById("editPurchasePrice");
   const editOrderValInput = document.getElementById("editOrderValue");
   const editMarginValInput = document.getElementById("editMarginValue");
+  if (editPurchasePriceInput) editPurchasePriceInput.addEventListener("input", updateDrawerMarginDisplay);
   if (editOrderValInput) editOrderValInput.addEventListener("input", updateDrawerMarginDisplay);
   if (editMarginValInput) editMarginValInput.addEventListener("input", updateDrawerMarginDisplay);
 
@@ -5223,15 +5343,19 @@ function initModalsAndDrawer() {
         }
 
         if (isOrderedChecked) {
-          deal.order_value = parseFloat(document.getElementById("editOrderValue").value) || (deal.forecast_value || deal.offer_value || 0);
-          deal.margin_value = parseFloat(document.getElementById("editMarginValue").value) || 0;
-          if (deal.order_value > 0 && deal.margin_value > 0) {
-            deal.margin_rate = parseFloat(((deal.margin_value / deal.order_value) * 100).toFixed(2));
+          deal.purchase_price = parseFloat(document.getElementById("editPurchasePrice")?.value) || 0;
+          deal.margin_value = parseFloat(document.getElementById("editMarginValue")?.value) || 0;
+          deal.order_value = parseFloat(document.getElementById("editOrderValue")?.value) || ((deal.purchase_price + deal.margin_value) || deal.forecast_value || deal.offer_value || 0);
+
+          const denom = (deal.purchase_price + deal.margin_value > 0) ? (deal.purchase_price + deal.margin_value) : deal.order_value;
+          if (denom > 0 && deal.margin_value > 0) {
+            deal.margin_rate = parseFloat(((deal.margin_value / denom) * 100).toFixed(2));
           } else {
             deal.margin_rate = 0;
           }
           deal.order_date = document.getElementById("editOrderDate").value || new Date().toISOString().split("T")[0];
         } else {
+          deal.purchase_price = 0;
           deal.order_value = 0;
           deal.margin_value = 0;
           deal.margin_rate = 0;
@@ -5246,6 +5370,7 @@ function initModalsAndDrawer() {
         deal.offer_status = "";
         deal.bpa_received = false;
         deal.bpa_date = null;
+        deal.purchase_price = 0;
         deal.order_value = 0;
         deal.margin_value = 0;
         deal.margin_rate = 0;
@@ -5286,6 +5411,10 @@ function initModalsAndDrawer() {
       }
       if (oldOrderValue !== deal.order_value && deal.order_value > 0) {
         changes.push(`Order: ${formatCurrencyEUR(oldOrderValue)} ➔ ${formatCurrencyEUR(deal.order_value)}`);
+      }
+      const oldPurchasePrice = parseFloat(currentDrawerDeal?.purchase_price || 0);
+      if (oldPurchasePrice !== deal.purchase_price && deal.purchase_price > 0) {
+        changes.push(`Purchase Price: ${formatCurrencyEUR(oldPurchasePrice)} ➔ ${formatCurrencyEUR(deal.purchase_price)}`);
       }
       if (oldMarginValue !== deal.margin_value && deal.margin_value > 0) {
         changes.push(`Margin: ${formatCurrencyEUR(oldMarginValue)} ➔ ${formatCurrencyEUR(deal.margin_value)} (${deal.margin_rate}%)`);
@@ -5960,6 +6089,7 @@ async function exportExcel() {
       { name: "Forecast (€)", width: 16, align: "right", fmt: "#,##0 €" },
       { name: "Offer Status", width: 22, align: "center" },
       { name: "BPA Received", width: 16, align: "center" },
+      { name: "Purchase Price (€)", width: 16, align: "right", fmt: "#,##0 €" },
       { name: "Order VVHT (€)", width: 16, align: "right", fmt: "#,##0 €" },
       { name: "Margin (€)", width: 15, align: "right", fmt: "#,##0 €" },
       { name: "Margin %", width: 12, align: "center", fmt: "0.0%" },
@@ -5985,9 +6115,11 @@ async function exportExcel() {
       const staleAlert = getStaleAlert(deal);
       const days = getDaysOpen(deal);
 
+      const purVal = parseFloat(deal.purchase_price) || 0;
       const ordVal = parseFloat(deal.order_value) || 0;
       const marVal = parseFloat(deal.margin_value) || 0;
-      const rate = ordVal > 0 && marVal > 0 ? (marVal / ordVal) : ((parseFloat(deal.margin_rate) || 0) / 100);
+      const denom = (purVal + marVal > 0) ? (purVal + marVal) : ordVal;
+      const rate = denom > 0 && marVal > 0 ? (marVal / denom) : ((parseFloat(deal.margin_rate) || 0) / 100);
       const offVal = parseFloat(deal.offer_value) || 0;
       const forecastVal = parseFloat(deal.forecast_value) > 0 ? parseFloat(deal.forecast_value) : offVal;
 
@@ -6009,6 +6141,7 @@ async function exportExcel() {
         isForecast ? forecastVal : 0,
         deal.offer_status || "—",
         hasBPA ? "YES (Confirmed)" : (isForecast ? "NO (Awaiting)" : "—"),
+        purVal,
         ordVal,
         marVal,
         rate,
@@ -6223,7 +6356,7 @@ function exportCSVFallback(dealsToExport) {
   const headers = [
     "ID", "N° Affaire", "Entry Date", "Buyer", "Prospector", "Supplier", "Supplier Type",
     "Lot Description", "Product Category", "Deal Status", "DD Date", "Offer Date", "Offer Number",
-    "Offer VVHT (€)", "Forecasted VVHT (€)", "Offer Status", "BPA Received", "Order VVHT (€)", "Margin (€)", "Margin Rate (%)", "Order Date",
+    "Offer VVHT (€)", "Forecasted VVHT (€)", "Offer Status", "BPA Received", "Purchase Price (€)", "Order VVHT (€)", "Margin (€)", "Margin Rate (%)", "Order Date",
     "Notes", "Days Open", "Overdue Alert"
   ];
 
@@ -6234,9 +6367,11 @@ function exportCSVFallback(dealsToExport) {
   };
 
   const rows = dealsToExport.map(d => {
+    const purVal = parseFloat(d.purchase_price) || 0;
     const ordVal = parseFloat(d.order_value) || 0;
     const marVal = parseFloat(d.margin_value) || 0;
-    const rate = (ordVal > 0 && marVal > 0) ? parseFloat(((marVal / ordVal) * 100).toFixed(2)) : (parseFloat(d.margin_rate) || 0);
+    const denom = (purVal + marVal > 0) ? (purVal + marVal) : ordVal;
+    const rate = (denom > 0 && marVal > 0) ? parseFloat(((marVal / denom) * 100).toFixed(2)) : (parseFloat(d.margin_rate) || 0);
     const days = getDaysOpen(d);
     const forecastVal = parseFloat(d.forecast_value) > 0 ? parseFloat(d.forecast_value) : (parseFloat(d.offer_value) || 0);
 
@@ -6258,6 +6393,7 @@ function exportCSVFallback(dealsToExport) {
       forecastVal,
       escapeCSV(d.offer_status),
       d.bpa_received ? "Yes" : "No",
+      purVal,
       ordVal,
       marVal,
       rate,

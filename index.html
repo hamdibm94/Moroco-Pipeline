@@ -135,88 +135,89 @@
         </div>
       </header>
 
-      <!-- LINE 2: Multi-Criterion Filters Bar -->
-      <div class="filters-bar">
-        <div class="filter-group">
-          <label><i data-lucide="calendar"></i> Period:</label>
-          <select id="filterPeriodType" class="select-control" title="Filter entire dashboard, action queue, charts & database by period">
+      <!-- LINE 2: Multi-Criterion Filters Bar (Revamped & Packed) -->
+      <div class="filters-bar" id="mainFiltersBar">
+        <div class="filter-group" title="Filter entire dashboard & database by period">
+          <label><i data-lucide="calendar"></i> Period</label>
+          <select id="filterPeriodType" class="select-control">
             <option value="All Time" selected>All Time</option>
-            <optgroup label="── By Month ──">
-              <option value="2026-10">October 2026 (Current Month)</option>
-              <option value="2026-09">September 2026</option>
+            <optgroup label="── Months ──">
+              <option value="2026-10">Oct 2026</option>
+              <option value="2026-09">Sep 2026</option>
             </optgroup>
-            <optgroup label="── By Week ──">
-              <option value="W42">Week 42 (Current Week: Oct 12-18)</option>
-              <option value="W41">Week 41 (Oct 05-11)</option>
-              <option value="W40">Week 40 (Sep 28-Oct 04)</option>
-              <option value="W39">Week 39 (Sep 21-27)</option>
-              <option value="W38">Week 38 (Sep 14-20)</option>
+            <optgroup label="── Weeks ──">
+              <option value="W42">W42 (Oct 12-18)</option>
+              <option value="W41">W41 (Oct 05-11)</option>
+              <option value="W40">W40 (Sep 28-04)</option>
+              <option value="W39">W39 (Sep 21-27)</option>
+              <option value="W38">W38 (Sep 14-20)</option>
             </optgroup>
-            <optgroup label="── Chart Views ──">
-              <option value="MODE_MONTHLY">Monthly View (Progress per Week)</option>
-              <option value="MODE_WEEKLY">Weekly View (Day by Day)</option>
+            <optgroup label="── Views ──">
+              <option value="MODE_MONTHLY">Monthly View</option>
+              <option value="MODE_WEEKLY">Weekly View</option>
             </optgroup>
           </select>
           <select id="filterPeriodValue" class="select-control hidden"></select>
         </div>
 
-        <div class="filter-group">
-          <label><i data-lucide="user-check"></i> Buyer:</label>
+        <div class="filter-group" title="Filter by assigned buyer">
+          <label><i data-lucide="user-check"></i> Buyer</label>
           <select id="filterBuyer" class="select-control">
-            <option value="All">All 3 Buyers</option>
-            <option value="Hamid AIT TAGADIRTE">Hamid AIT TAGADIRTE</option>
-            <option value="Marouane CHAHDANE">Marouane CHAHDANE</option>
-            <option value="Raffael BUENOS AIRES">Raffael BUENOS AIRES</option>
+            <option value="All">All</option>
+            <option value="Hamid AIT TAGADIRTE">Hamid</option>
+            <option value="Marouane CHAHDANE">Marouane</option>
+            <option value="Raffael BUENOS AIRES">Raffael</option>
           </select>
         </div>
 
-        <div class="filter-group">
-          <label><i data-lucide="user"></i> Prospector:</label>
-          <select id="filterProspector" class="select-control" title="Filter by prospector assignment">
-            <option value="All" selected>All (With &amp; Without Prospector)</option>
-            <option value="__NO_PROSPECTOR__">Without Prospector (No Prospector)</option>
-            <optgroup label="── By Prospector Name ──">
-              <option value="Joao">Joao</option>
-              <option value="Karim">Karim</option>
-              <option value="Manuel">Manuel</option>
-              <option value="Nadia">Nadia</option>
-              <option value="Said">Said</option>
-              <option value="Yassine">Yassine</option>
-            </optgroup>
+        <div class="filter-group" title="Filter by prospector">
+          <label><i data-lucide="user"></i> Pros</label>
+          <select id="filterProspector" class="select-control">
+            <option value="All" selected>All</option>
+            <option value="__NO_PROSPECTOR__">None</option>
           </select>
         </div>
 
-        <div class="filter-group">
-          <label><i data-lucide="tag"></i> Category:</label>
+        <div class="filter-group" title="Filter by product category">
+          <label><i data-lucide="tag"></i> Cat</label>
           <select id="filterCategory" class="select-control">
-            <option value="All">All Categories</option>
+            <option value="All">All</option>
           </select>
         </div>
 
-        <div class="filter-group">
-          <label><i data-lucide="briefcase"></i> Supplier Type:</label>
+        <div class="filter-group" title="Filter by supplier type">
+          <label><i data-lucide="briefcase"></i> Type</label>
           <select id="filterSupplierType" class="select-control">
-            <option value="All">All Types</option>
-            <option value="Actif">Active (Actif)</option>
-            <option value="Inactif">Inactive (Inactif)</option>
-            <option value="Occasionnel">Occasional (Occasionnel)</option>
+            <option value="All">All</option>
+            <option value="Actif">Active</option>
+            <option value="Inactif">Inactive</option>
+            <option value="Occasionnel">Occasional</option>
             <option value="NEW BIZ">NEW BIZ</option>
           </select>
         </div>
 
-        <label class="toggle-switch-group">
+        <label class="toggle-switch-group toggle-active-deals" id="lblFilterOngoingOnly" title="Filter active/ongoing deals only">
           <input type="checkbox" id="filterOngoingOnly">
-          <span>Active Deals (<span id="ongoingCountBadge">0</span>)</span>
+          <span class="toggle-dot dot-green"></span>
+          <span>Active (<span id="ongoingCountBadge">0</span>)</span>
         </label>
 
-        <label class="toggle-switch-group">
+        <label class="toggle-switch-group toggle-overdue-deals" id="lblFilterStaleOnly" title="Filter overdue deals exceeding SLA">
           <input type="checkbox" id="filterStaleOnly">
-          <span style="color:var(--brand-red);">Overdue Deals (<span id="staleCountBadge">0</span>)</span>
+          <span class="toggle-dot dot-red"></span>
+          <span>Overdue (<span id="staleCountBadge">0</span>)</span>
         </label>
 
-        <div class="filter-search-box">
-          <i data-lucide="search"></i>
-          <input type="text" id="searchInput" placeholder="Search supplier, product, offer #, buyer...">
+        <div class="filter-right-tools">
+          <div class="filter-search-box">
+            <i data-lucide="search"></i>
+            <input type="text" id="searchInput" placeholder="Search...">
+          </div>
+
+          <button type="button" id="btnClearFilters" class="btn btn-secondary btn-sm btn-clear-filters" title="Reset all filters to default">
+            <i data-lucide="filter-x"></i>
+            <span id="txtClearFiltersLabel">Clear Filters</span>
+          </button>
         </div>
       </div>
     </div>
@@ -694,13 +695,27 @@
         <section class="table-panel">
           <div class="table-panel-header">
             <div class="table-panel-title">
-              <i data-lucide="table"></i>
-              <span>Production & Purchasing Tracking Table · Casablanca Office</span>
-              <span class="table-records-count">(Showing <span id="tableFilteredCount">0</span> of <span id="tableTotalCount">0</span> deals)</span>
+              <div class="table-title-icon-box">
+                <i data-lucide="table"></i>
+              </div>
+              <div class="table-title-content">
+                <span class="table-title-text">Production &amp; Purchasing Deals</span>
+                <span class="table-title-subtitle">Casablanca Sourcing Desk</span>
+              </div>
+              <div class="table-count-pill" title="Active filtered deals / Total database deals">
+                <span class="table-count-dot"></span>
+                <span id="tableFilteredCount">0</span>
+                <span class="table-count-divider">/</span>
+                <span id="tableTotalCount">0</span>
+                <span class="table-count-label">deals</span>
+              </div>
             </div>
 
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-              <button id="btnExportTableCSV" class="btn btn-secondary btn-sm">
+            <div class="table-panel-actions">
+              <span class="table-hint-pill">
+                <i data-lucide="mouse-pointer"></i> Click row to inspect
+              </span>
+              <button id="btnExportTableCSV" class="btn btn-secondary btn-sm btn-export-excel" title="Export this table to Excel (.xlsx)">
                 <i data-lucide="file-spreadsheet"></i>
                 <span>Export Excel</span>
               </button>
@@ -711,59 +726,62 @@
             <table class="main-pipeline-table" id="mainPipelineTable">
               <thead>
                 <tr>
-                  <th style="width: 44px;" class="th-sortable" data-sort="id" title="Click to sort by ID (#)">
-                    <span>#</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 46px; min-width: 46px;" class="col-sticky-1 th-sortable" data-sort="id" title="Click to sort by ID (#)">
+                    <div class="th-content"><span>#</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="th-sortable" data-sort="affaire_number" title="Click to sort by Deal / Affaire #">
-                    <span>N° Affaire</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 120px; min-width: 120px;" class="col-sticky-2 th-sortable" data-sort="affaire_number" title="Click to sort by Deal / Affaire #">
+                    <div class="th-content"><span>N° Affaire</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="th-sortable" data-sort="entry_date" title="Click to sort by Entry Date">
-                    <span>Entry Date</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 100px; min-width: 100px;" class="th-sortable" data-sort="entry_date" title="Click to sort by Entry Date">
+                    <div class="th-content"><span>Date</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="th-sortable" data-sort="buyer" title="Click to sort by Buyer">
-                    <span>Buyer</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 140px; min-width: 140px;" class="th-sortable" data-sort="buyer" title="Click to sort by Buyer">
+                    <div class="th-content"><span>Buyer</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="th-sortable" data-sort="prospector" title="Click to sort by Prospector">
-                    <span>Prospector</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 120px; min-width: 120px;" class="th-sortable" data-sort="prospector" title="Click to sort by Prospector">
+                    <div class="th-content"><span>Prospector</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="th-sortable" data-sort="supplier" title="Click to sort by Supplier">
-                    <span>Supplier</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 160px; min-width: 160px;" class="th-sortable" data-sort="supplier" title="Click to sort by Supplier">
+                    <div class="th-content"><span>Supplier</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="th-sortable" data-sort="supplier_type" title="Click to sort by Supplier Type">
-                    <span>Supplier Type</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 105px; min-width: 105px;" class="th-sortable text-center" data-sort="supplier_type" title="Click to sort by Supplier Type">
+                    <div class="th-content justify-center"><span>Type</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="th-sortable" data-sort="product" title="Click to sort by Lot Description">
-                    <span>Lot Description</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="min-width: 170px;" class="th-sortable" data-sort="product" title="Click to sort by Lot Description">
+                    <div class="th-content"><span>Lot Description</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="th-sortable" data-sort="product_range" title="Click to sort by Product Category">
-                    <span>Product Category</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 130px; min-width: 130px;" class="th-sortable" data-sort="product_range" title="Click to sort by Product Category">
+                    <div class="th-content"><span>Category</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="text-center th-sortable" data-sort="affaire_status" title="Click to sort by Deal Status">
-                    <span>Deal Status</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 110px; min-width: 110px;" class="text-center th-sortable" data-sort="affaire_status" title="Click to sort by Deal Status">
+                    <div class="th-content justify-center"><span>Deal Status</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="text-center th-sortable" data-sort="offer_number" title="Click to sort by Offer #">
-                    <span>Offer #</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 95px; min-width: 95px;" class="text-center th-sortable" data-sort="offer_number" title="Click to sort by Offer #">
+                    <div class="th-content justify-center"><span>Offer #</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="text-right th-sortable" data-sort="offer_value" title="Click to sort by Offer VVHT">
-                    <span>Offer VVHT (€)</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 125px; min-width: 125px;" class="text-right th-sortable th-financial" data-sort="offer_value" title="Click to sort by Offer VVHT">
+                    <div class="th-content justify-end"><span>Offer VVHT (€)</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="text-center th-sortable" data-sort="offer_status" title="Click to sort by Offer Status">
-                    <span>Offer Status</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 130px; min-width: 130px;" class="text-center th-sortable" data-sort="offer_status" title="Click to sort by Offer Status">
+                    <div class="th-content justify-center"><span>Offer Status</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="text-right th-sortable" data-sort="order_value" title="Click to sort by Order VVHT">
-                    <span>Order VVHT (€)</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 125px; min-width: 125px;" class="text-right th-sortable th-financial" data-sort="purchase_price" title="Click to sort by Purchase Price">
+                    <div class="th-content justify-end"><span>Purchase (€)</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="text-right th-sortable" data-sort="margin_value" title="Click to sort by Margin (€)">
-                    <span>Margin (€)</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 135px; min-width: 135px;" class="text-right th-sortable th-financial" data-sort="order_value" title="Click to sort by Order VVHT">
+                    <div class="th-content justify-end"><span>Order VVHT (€)</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="text-center th-sortable" data-sort="margin_rate" title="Click to sort by Margin %">
-                    <span>Margin %</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 115px; min-width: 115px;" class="text-right th-sortable th-financial" data-sort="margin_value" title="Click to sort by Margin (€)">
+                    <div class="th-content justify-end"><span>Margin (€)</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="text-center th-sortable" data-sort="days" title="Click to sort by Days in Stage (Age / Alert)">
-                    <span>Days / Alert</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 95px; min-width: 95px;" class="text-center th-sortable th-financial" data-sort="margin_rate" title="Click to sort by Margin %">
+                    <div class="th-content justify-center"><span>Margin %</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
-                  <th class="th-sortable" data-sort="notes" title="Click to sort by Follow-up Notes">
-                    <span>Follow-up Notes</span> <i data-lucide="arrow-up-down"></i>
+                  <th style="width: 115px; min-width: 115px;" class="text-center th-sortable" data-sort="days" title="Click to sort by Days in Stage (Age / Alert)">
+                    <div class="th-content justify-center"><span>Days / Alert</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
+                  </th>
+                  <th style="min-width: 160px;" class="th-sortable" data-sort="notes" title="Click to sort by Follow-up Notes">
+                    <div class="th-content"><span>Follow-up Notes</span> <span class="sort-icon-box"><i class="sort-icon" data-lucide="arrow-up-down"></i></span></div>
                   </th>
                 </tr>
               </thead>
@@ -1090,8 +1108,8 @@
                   
                   <div class="form-grid">
                     <div class="form-group">
-                      <label>Order VVHT (€):</label>
-                      <input type="number" step="0.01" id="editOrderValue" class="form-control font-mono" placeholder="0.00">
+                      <label>Purchase Price (€):</label>
+                      <input type="number" step="0.01" id="editPurchasePrice" class="form-control font-mono" placeholder="0.00">
                     </div>
 
                     <div class="form-group">
@@ -1099,17 +1117,22 @@
                       <input type="number" step="0.01" id="editMarginValue" class="form-control font-mono" placeholder="0.00">
                     </div>
 
-                    <div class="form-group col-span-2">
-                      <label>Calculated Margin Rate (% = Margin / Order VVHT):</label>
-                      <div id="displayCalculatedMargin" class="form-control font-mono" style="background:var(--bg-card); font-weight:700; color:var(--brand-green); display:flex; align-items:center; justify-content:space-between;">
-                        <span id="txtCalculatedMargin">0.0%</span>
-                        <span id="formulaCalculatedMargin" style="font-size:0.72rem; color:var(--text-dim); font-weight:400;">Margin / Order VVHT</span>
-                      </div>
+                    <div class="form-group">
+                      <label>Order VVHT (€):</label>
+                      <input type="number" step="0.01" id="editOrderValue" class="form-control font-mono" placeholder="0.00">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Order Date:</label>
+                      <input type="date" id="editOrderDate" class="form-control">
                     </div>
 
                     <div class="form-group col-span-2">
-                      <label>Order Date:</label>
-                      <input type="date" id="editOrderDate" class="form-control">
+                      <label>Calculated Margin Rate (% = Margin / (Purchase Price + Margin)):</label>
+                      <div id="displayCalculatedMargin" class="form-control font-mono" style="background:var(--bg-card); font-weight:700; color:var(--brand-green); display:flex; align-items:center; justify-content:space-between;">
+                        <span id="txtCalculatedMargin">0.0%</span>
+                        <span id="formulaCalculatedMargin" style="font-size:0.72rem; color:var(--text-dim); font-weight:400;">Margin / (Purchase Price + Margin)</span>
+                      </div>
                     </div>
                   </div>
                 </div>

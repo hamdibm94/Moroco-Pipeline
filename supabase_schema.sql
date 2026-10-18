@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS morocco_pipeline (
     offer_status TEXT,
     bpa_received BOOLEAN DEFAULT false,
     bpa_date DATE,
+    purchase_price NUMERIC(14, 2) DEFAULT 0.00,
     order_value NUMERIC(14, 2) DEFAULT 0.00,
     margin_value NUMERIC(14, 2) DEFAULT 0.00,
     margin_rate NUMERIC(6, 2) DEFAULT 0.00,
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS morocco_pipeline (
 -- Migration support for existing tables:
 ALTER TABLE morocco_pipeline ADD COLUMN IF NOT EXISTS affaire_number TEXT;
 ALTER TABLE morocco_pipeline ADD COLUMN IF NOT EXISTS bpa_date DATE;
+ALTER TABLE morocco_pipeline ADD COLUMN IF NOT EXISTS purchase_price NUMERIC(14, 2) DEFAULT 0.00;
 
 -- 2. Create team activity & audit logs table (for Toby, Said, Andreea)
 CREATE TABLE IF NOT EXISTS pipeline_logs (

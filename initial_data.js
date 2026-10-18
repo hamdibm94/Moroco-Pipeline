@@ -1,4 +1,4 @@
-window.SEED_DEALS = [
+window.initialPipelineData = [
   {
     "id": 1,
     "affaire_number": null,
@@ -23,7 +23,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-02 · Hamid AIT TAGADIRTE]: Actif à relancer 19/10/2026",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 2,
@@ -49,7 +50,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-02 · Hamid AIT TAGADIRTE]: chercher statut fournisseur et programmer relance 19/10/2026",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 3,
@@ -75,7 +77,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-13 · Hamid AIT TAGADIRTE]: attente retour photo manquante pour déposer le dossier",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 4,
@@ -101,7 +104,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-13 · Hamid AIT TAGADIRTE]: CRV à dépôser",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 5,
@@ -127,7 +131,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-13 · Hamid AIT TAGADIRTE]: Attente retour CP pour les résultats des ventes du lot précedent du moi de septembre dernier. Relance à faire au CP",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 6,
@@ -153,7 +158,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-13 · Hamid AIT TAGADIRTE]: a négocier le 19/10/2026",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 7,
@@ -179,7 +185,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-15 · Hamid AIT TAGADIRTE]: lot detecté en attente de compléments d'info en plus clarifier la creation de l'affaire par le pros Orlandu",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 8,
@@ -205,7 +212,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-16 · Hamid AIT TAGADIRTE]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 9,
@@ -231,7 +239,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-16 · Hamid AIT TAGADIRTE]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 10,
@@ -257,7 +266,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-02 · Marouane CHAHDANE]: ok",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 11,
@@ -283,7 +293,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-02 · Marouane CHAHDANE]: ok",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 12,
@@ -309,7 +320,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-02 · Marouane CHAHDANE]: En attente d’informations supplémentaires.",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 13,
@@ -335,7 +347,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-02 · Marouane CHAHDANE]: Traité par Andrei Gaspar",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 14,
@@ -361,7 +374,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-13 · Marouane CHAHDANE]: En attente d’informations supplémentaires.",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 15,
@@ -387,7 +401,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-14 · Marouane CHAHDANE]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 16,
@@ -413,7 +428,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-14 · Marouane CHAHDANE]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 17,
@@ -439,7 +455,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-16 · Marouane CHAHDANE]: A contacter lundi",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 18,
@@ -465,7 +482,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-16 · Marouane CHAHDANE]: Lundi, le responsable m’enverra listing",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 19,
@@ -491,7 +509,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-16 · Marouane CHAHDANE]: En attente de repoonse",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 20,
@@ -517,7 +536,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-09-29 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 21,
@@ -543,7 +563,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-07 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 22,
@@ -569,7 +590,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-07 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 23,
@@ -595,7 +617,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-07 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 24,
@@ -621,7 +644,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-07 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 25,
@@ -647,7 +671,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-07 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 26,
@@ -673,7 +698,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": "2026-10-08",
     "notes": "[2026-10-08 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 29990
   },
   {
     "id": 27,
@@ -699,7 +725,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-09 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 28,
@@ -725,7 +752,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-09 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 29,
@@ -751,7 +779,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-12 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 30,
@@ -777,7 +806,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-12 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 31,
@@ -803,7 +833,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-13 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 32,
@@ -829,7 +860,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-13 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 33,
@@ -855,7 +887,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-14 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 34,
@@ -881,7 +914,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-14 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 35,
@@ -907,7 +941,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-14 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 36,
@@ -933,7 +968,8 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-16 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   },
   {
     "id": 37,
@@ -959,6 +995,7 @@ window.SEED_DEALS = [
     "margin_rate": 0,
     "order_date": null,
     "notes": "[2026-10-16 · Raffael BUENOS AIRES]: Dossier importé depuis Suivi_Prod-Team-Casa.xlsx",
-    "team": "Morocco"
+    "team": "Morocco",
+    "purchase_price": 0
   }
 ];
