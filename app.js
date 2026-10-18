@@ -1425,6 +1425,7 @@ function applyFiltersAndRender() {
         (d.product && d.product.toLowerCase().includes(filterSearchVal)) ||
         (d.buyer && d.buyer.toLowerCase().includes(filterSearchVal)) ||
         (d.prospector && d.prospector.toLowerCase().includes(filterSearchVal)) ||
+        (d.affaire_number && String(d.affaire_number).toLowerCase().includes(filterSearchVal)) ||
         (d.offer_number && String(d.offer_number).includes(filterSearchVal)) ||
         (d.notes && d.notes.toLowerCase().includes(filterSearchVal))
       );
@@ -3304,7 +3305,7 @@ function renderTable() {
   if (filteredDeals.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="17" style="text-align:center; padding:2.5rem; color:var(--text-dim);">
+        <td colspan="18" style="text-align:center; padding:2.5rem; color:var(--text-dim);">
           <i data-lucide="inbox" style="width:36px; height:36px; margin-bottom:0.5rem; opacity:0.6;"></i>
           <div>No deals found matching your search criteria.</div>
         </td>
@@ -3322,6 +3323,9 @@ function renderTable() {
     switch (col) {
       case "id":
         return ((a.id || 0) - (b.id || 0)) * dir;
+
+      case "affaire_number":
+        return String(a.affaire_number || "").localeCompare(String(b.affaire_number || ""), undefined, { numeric: true }) * dir;
 
       case "entry_date": {
         const tA = a.entry_date ? new Date(a.entry_date).getTime() : 0;
@@ -3467,6 +3471,7 @@ function renderTable() {
     }
     tr.innerHTML = `
       <td class="font-mono" style="color:var(--text-dim); font-size:0.75rem;">${idx + 1}</td>
+      <td class="font-mono font-semibold" style="color:var(--brand-teal); font-size:0.75rem;">${escapeHtml(deal.affaire_number || "—")}</td>
       <td class="font-mono">${escapeHtml(formatDateFR(deal.entry_date))}</td>
       <td class="font-semibold">${escapeHtml(deal.buyer)}</td>
       <td class="text-teal font-semibold">${escapeHtml(deal.prospector || "—")}</td>
@@ -3815,6 +3820,17 @@ function openDrawer(deal) {
   adminForceUnlock = false;
   document.getElementById("editDealId").value = deal.id;
   document.getElementById("drawerSupplierTitle").textContent = deal.supplier || `Deal #${deal.id}`;
+
+  const drawerAffaireBadge = document.getElementById("drawerAffaireBadge");
+  if (drawerAffaireBadge) {
+    if (deal.affaire_number) {
+      drawerAffaireBadge.textContent = `📁 Affaire #${deal.affaire_number}`;
+      drawerAffaireBadge.style.display = "inline-flex";
+    } else {
+      drawerAffaireBadge.style.display = "none";
+    }
+  }
+
   document.getElementById("drawerBuyerBadge").textContent = `👤 ${deal.buyer}`;
   document.getElementById("drawerProspectorBadge").textContent = `🔍 ${deal.prospector || "No Prospector"}`;
   document.getElementById("drawerCategoryBadge").textContent = `🏷️ ${getProductCategoryLabel(deal.product_range)}`;
@@ -3846,6 +3862,8 @@ function openDrawer(deal) {
   }
 
   document.getElementById("editEntryDate").value = deal.entry_date || "";
+  const editAffaireEl = document.getElementById("editAffaireNumber");
+  if (editAffaireEl) editAffaireEl.value = deal.affaire_number || "";
   document.getElementById("editBuyer").value = deal.buyer || "Hamid AIT TAGADIRTE";
   document.getElementById("editProspector").value = deal.prospector || "";
   document.getElementById("editSupplierType").value = deal.supplier_type || "Actif";
@@ -4259,6 +4277,8 @@ function initModalsAndDrawer() {
     btnOpenAdd.addEventListener("click", () => {
       addForm.reset();
       document.getElementById("addEntryDate").value = new Date().toISOString().split("T")[0];
+      const addAffaireEl = document.getElementById("addAffaireNumber");
+      if (addAffaireEl) addAffaireEl.value = "";
       const addBuyerEl = document.getElementById("addBuyer");
       if (addBuyerEl) {
         if (isBuyerUser()) {
@@ -4289,6 +4309,7 @@ function initModalsAndDrawer() {
 
       const newDeal = {
         id: null,
+        affaire_number: document.getElementById("addAffaireNumber") ? (document.getElementById("addAffaireNumber").value.trim() || null) : null,
         entry_date: document.getElementById("addEntryDate").value,
         buyer: isBuyerUser() ? currentUser : document.getElementById("addBuyer").value,
         prospector: document.getElementById("addProspector").value.trim(),
@@ -4958,6 +4979,8 @@ function initModalsAndDrawer() {
       if (addModal) {
         addModal.classList.add("open");
         document.getElementById("addEntryDate").value = new Date().toISOString().split("T")[0];
+        const addAffaireEl = document.getElementById("addAffaireNumber");
+        if (addAffaireEl) addAffaireEl.value = "";
         const addBuyerEl = document.getElementById("addBuyer");
         if (addBuyerEl) {
           addBuyerEl.value = isBuyerUser() ? currentUser : (d.buyer || "Hamid AIT TAGADIRTE");
@@ -5123,6 +5146,7 @@ function initModalsAndDrawer() {
       }
 
       const oldStageLabel = getStageLabel(deal);
+      const oldAffaireNumber = deal.affaire_number || "";
       const oldOfferValue = parseFloat(deal.offer_value) || 0;
       const oldForecastValue = parseFloat(deal.forecast_value) || 0;
       const oldOfferStatus = deal.offer_status || "";
@@ -5135,6 +5159,10 @@ function initModalsAndDrawer() {
 
       // Read sourcing fields safely (preserve existing if disabled)
       deal.entry_date = document.getElementById("editEntryDate").value || deal.entry_date;
+      const editAffaireEl = document.getElementById("editAffaireNumber");
+      if (editAffaireEl) {
+        deal.affaire_number = editAffaireEl.value.trim() || null;
+      }
       deal.buyer = isBuyerUser() ? currentUser : (document.getElementById("editBuyer").value || deal.buyer);
       deal.prospector = document.getElementById("editProspector").value.trim() || deal.prospector;
       deal.supplier_type = document.getElementById("editSupplierType").value || deal.supplier_type;
@@ -5232,6 +5260,9 @@ function initModalsAndDrawer() {
       const newAffaireStatus = deal.affaire_status || "";
 
       const changes = [];
+      if (oldAffaireNumber !== (deal.affaire_number || "")) {
+        changes.push(`N° Affaire: "${oldAffaireNumber || 'None'}" ➔ "${deal.affaire_number || 'None'}"`);
+      }
       if (oldAffaireStatus !== newAffaireStatus) {
         changes.push(`Deal Status: "${oldAffaireStatus}" ➔ "${newAffaireStatus}"`);
       }
@@ -5913,6 +5944,7 @@ async function exportExcel() {
 
     const dbHeaders = [
       { name: "ID", width: 8, align: "center" },
+      { name: "N° Affaire", width: 14, align: "center" },
       { name: "Entry Date", width: 13, align: "center" },
       { name: "Buyer", width: 24, align: "left" },
       { name: "Prospector", width: 16, align: "left" },
@@ -5961,6 +5993,7 @@ async function exportExcel() {
 
       const rowData = [
         deal.id,
+        deal.affaire_number || "—",
         deal.entry_date || "—",
         deal.buyer || "—",
         deal.prospector || "—",
@@ -6188,7 +6221,7 @@ async function exportExcel() {
 
 function exportCSVFallback(dealsToExport) {
   const headers = [
-    "ID", "Entry Date", "Buyer", "Prospector", "Supplier", "Supplier Type",
+    "ID", "N° Affaire", "Entry Date", "Buyer", "Prospector", "Supplier", "Supplier Type",
     "Lot Description", "Product Category", "Deal Status", "DD Date", "Offer Date", "Offer Number",
     "Offer VVHT (€)", "Forecasted VVHT (€)", "Offer Status", "BPA Received", "Order VVHT (€)", "Margin (€)", "Margin Rate (%)", "Order Date",
     "Notes", "Days Open", "Overdue Alert"
@@ -6209,6 +6242,7 @@ function exportCSVFallback(dealsToExport) {
 
     return [
       d.id || "",
+      escapeCSV(d.affaire_number),
       d.entry_date || "",
       escapeCSV(d.buyer),
       escapeCSV(d.prospector),

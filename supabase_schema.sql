@@ -8,6 +8,7 @@
 -- 1. Create main pipeline table
 CREATE TABLE IF NOT EXISTS morocco_pipeline (
     id BIGSERIAL PRIMARY KEY,
+    affaire_number TEXT,
     entry_date DATE NOT NULL DEFAULT CURRENT_DATE,
     buyer TEXT NOT NULL,
     prospector TEXT,
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS morocco_pipeline (
 );
 
 -- Migration support for existing tables:
+ALTER TABLE morocco_pipeline ADD COLUMN IF NOT EXISTS affaire_number TEXT;
 ALTER TABLE morocco_pipeline ADD COLUMN IF NOT EXISTS bpa_date DATE;
 
 -- 2. Create team activity & audit logs table (for Toby, Said, Andreea)

@@ -714,6 +714,9 @@
                   <th style="width: 44px;" class="th-sortable" data-sort="id" title="Click to sort by ID (#)">
                     <span>#</span> <i data-lucide="arrow-up-down"></i>
                   </th>
+                  <th class="th-sortable" data-sort="affaire_number" title="Click to sort by Deal / Affaire #">
+                    <span>N° Affaire</span> <i data-lucide="arrow-up-down"></i>
+                  </th>
                   <th class="th-sortable" data-sort="entry_date" title="Click to sort by Entry Date">
                     <span>Entry Date</span> <i data-lucide="arrow-up-down"></i>
                   </th>
@@ -791,6 +794,7 @@
             <button type="button" class="btn-icon-inline" id="btnEditSupplierNameTitle" title="Edit supplier name"><i data-lucide="edit-3" style="width:14px; height:14px;"></i></button>
           </div>
           <div class="drawer-header-badges">
+            <span id="drawerAffaireBadge" class="badge badge-teal" style="display:none; font-weight:700;">📁 Affaire #—</span>
             <span id="drawerBuyerBadge" class="badge badge-primary">👤 Buyer</span>
             <span id="drawerProspectorBadge" class="badge badge-teal">🔍 Prospector</span>
             <span id="drawerCategoryBadge" class="badge badge-amber">🏷️ Category</span>
@@ -887,6 +891,11 @@
                   <div class="form-group">
                     <label>Detection / Entry Date:</label>
                     <input type="date" id="editEntryDate" class="form-control">
+                  </div>
+
+                  <div class="form-group">
+                    <label>N° d'Affaire (Deal #):</label>
+                    <input type="text" id="editAffaireNumber" class="form-control" placeholder="e.g. 5143850">
                   </div>
 
                   <div class="form-group">
@@ -1212,6 +1221,11 @@
             <div class="form-group">
               <label>Entry Date:</label>
               <input type="date" id="addEntryDate" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>N° d'Affaire (Deal #):</label>
+              <input type="text" id="addAffaireNumber" class="form-control" placeholder="e.g. 5143850">
             </div>
 
             <div class="form-group">
