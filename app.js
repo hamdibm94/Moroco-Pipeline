@@ -180,10 +180,11 @@ function updateThemeIcon() {
   }
 }
 
-// ── 5. ROLE-BASED ACCESS CONTROL (ADMIN, TEAM LEADER, BUYERS) ─────────────
+// ── 5. ROLE-BASED ACCESS CONTROL (ADMIN, MANAGER, TEAM LEADER, BUYERS) ─────
 const DEFAULT_ACCOUNTS = [
   { name: "Toby", role: "Admin", pin: "2309" },
   { name: "Said", role: "Team Leader", pin: "1470" },
+  { name: "Andreea", role: "Manager", pin: "1470" },
   { name: "Hamid AIT TAGADIRTE", role: "Buyer", pin: "1111" },
   { name: "Marouane CHAHDANE", role: "Buyer", pin: "2222" },
   { name: "Raffael BUENOS AIRES", role: "Buyer", pin: "3333" }
@@ -195,6 +196,11 @@ function getUserAccounts() {
     try {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.some(a => a.name === "Hamid AIT TAGADIRTE")) {
+        // Ensure Andreea exists if not added yet
+        if (!parsed.some(a => a.name.toLowerCase() === "andreea")) {
+          parsed.push({ name: "Andreea", role: "Manager", pin: "1470" });
+          localStorage.setItem("morocco_user_accounts", JSON.stringify(parsed));
+        }
         return parsed;
       }
     } catch(e) {}
@@ -215,6 +221,7 @@ function getCurrentUserRole() {
   if (acc) return acc.role;
   if (currentUser === "Toby") return "Admin";
   if (currentUser === "Said") return "Team Leader";
+  if (currentUser === "Andreea") return "Manager";
   return "Buyer";
 }
 
@@ -222,13 +229,18 @@ function isAdmin() {
   return getCurrentUserRole() === "Admin" || currentUser === "Toby";
 }
 
-function isTeamLeader() {
-  const role = getCurrentUserRole();
-  return role === "Team Leader" || role === "Manager";
+function isManager() {
+  return getCurrentUserRole() === "Manager";
 }
 
+function isTeamLeader() {
+  return getCurrentUserRole() === "Team Leader";
+}
+
+// Leadership (Admin, Manager, Team Leader) have supervisory authority and bypass single-buyer lock
 function isTeamLeaderOrAdmin() {
-  return isAdmin() || isTeamLeader();
+  const role = getCurrentUserRole();
+  return isAdmin() || role === "Manager" || role === "Team Leader";
 }
 
 function isBuyerUser() {
@@ -317,19 +329,27 @@ window.openDealFromLog = (dealId) => {
 function updateAdminUI() {
   const role = getCurrentUserRole();
   const userBadge = document.getElementById("activeUserName");
+  const userPill = document.getElementById("activeUserBadge");
   if (userBadge) {
+    let icon = "👤";
     if (role === "Admin") {
-      userBadge.textContent = `👑 ${currentUser} (Admin)`;
+      icon = "👑";
+    } else if (role === "Manager") {
+      icon = "⭐";
     } else if (role === "Team Leader") {
-      userBadge.textContent = `👔 ${currentUser} (Team Leader)`;
-    } else {
-      userBadge.textContent = `👤 ${currentUser} (Buyer)`;
+      icon = "👔";
+    } else if (role === "Prospector") {
+      icon = "🔍";
     }
+    userBadge.textContent = `${icon} ${currentUser} (${role})`;
+  }
+  if (userPill) {
+    userPill.title = `Logged in as ${currentUser} (${role})`;
   }
 
   const deleteBtn = document.getElementById("btnDeleteDrawerDeal");
   if (deleteBtn) {
-    deleteBtn.style.display = isAdmin() ? "inline-flex" : "none";
+    deleteBtn.style.display = isTeamLeaderOrAdmin() ? "inline-flex" : "none";
   }
 
   const clearLogsBtn = document.getElementById("btnClearAuditLogs");
@@ -339,8 +359,8 @@ function updateAdminUI() {
 
   const settingsBtn = document.getElementById("btnOpenSettings");
   if (settingsBtn) {
-    settingsBtn.style.display = isAdmin() ? "inline-flex" : "none";
-    settingsBtn.title = "Cloud Sync & System Settings (Admin)";
+    settingsBtn.style.display = (isAdmin() || isManager()) ? "inline-flex" : "none";
+    settingsBtn.title = isAdmin() ? "Cloud Sync & System Settings (Admin)" : "Team Accounts & System Settings (Manager)";
   }
 
   // RBAC for Buyer controls
@@ -403,7 +423,9 @@ function initPINLock() {
       accounts.map(acc => {
         let icon = "👤";
         if (acc.role === "Admin") icon = "👑";
+        else if (acc.role === "Manager") icon = "⭐";
         else if (acc.role === "Team Leader") icon = "👔";
+        else if (acc.role === "Prospector") icon = "🔍";
         return `<option value="${escapeHtml(acc.name)}" ${acc.name === savedUser ? 'selected' : ''}>${icon} ${escapeHtml(acc.name)} (${escapeHtml(acc.role)})</option>`;
       }).join("");
   }
@@ -3786,12 +3808,29 @@ function updateDrawerLockingState(deal, forceUnlock = false) {
     if (lockNoticeNego) lockNoticeNego.style.display = "none";
     if (lockNoticeOutcome) lockNoticeOutcome.style.display = "none";
     if (txtUnlockBtn) txtUnlockBtn.textContent = "Re-Lock";
-    if (txtUnlockStatus) txtUnlockStatus.textContent = "Admin: Fields Unlocked (Editable)";
+    if (txtUnlockStatus) txtUnlockStatus.textContent = "Leadership: Fields Unlocked (Editable)";
+
+    const pillGroupNego = document.getElementById("btnGroupOfferStatusPills");
+    if (pillGroupNego) pillGroupNego.classList.remove("is-disabled");
+    const pillGroupOutcome = document.getElementById("btnGroupOutcomePills");
+    if (pillGroupOutcome) pillGroupOutcome.classList.remove("is-disabled");
+
+    const bSourcing = document.getElementById("badgeGroupSourcing");
+    if (bSourcing) {
+      const affVal = document.getElementById("editAffaireStatus")?.value || deal.affaire_status || "Prenego";
+      bSourcing.className = (affVal === "DD") ? "badge badge-primary font-mono" : "badge badge-primary";
+      bSourcing.textContent = `${affVal} (Unlocked)`;
+    }
     return;
   }
 
   if (txtUnlockBtn) txtUnlockBtn.textContent = "Unlock All";
-  if (txtUnlockStatus) txtUnlockStatus.textContent = "Admin: Previous stages locked";
+  if (txtUnlockStatus) txtUnlockStatus.textContent = "Leadership: Previous stages locked";
+
+  const canOverride = isTeamLeaderOrAdmin();
+  document.querySelectorAll(".btn-override-unlock").forEach(btn => {
+    btn.style.display = canOverride ? "inline-flex" : "none";
+  });
 
   // Stage 1: Once there is an offer, lock previous information (Sourcing & Supplier)
   if (hasOffer) {
@@ -4222,10 +4261,10 @@ function openDrawer(deal) {
   renderCommentLogs(deal.notes);
   updateAdminUI();
 
-  // Admin emergency unlock visibility
+  // Leadership & Admin emergency unlock visibility
   const adminUnlockBox = document.getElementById("drawerAdminUnlockBox");
   if (adminUnlockBox) {
-    adminUnlockBox.style.display = isAdmin() ? "flex" : "none";
+    adminUnlockBox.style.display = isTeamLeaderOrAdmin() ? "flex" : "none";
   }
 
   // Apply Progressive Stage Locking
@@ -4856,8 +4895,34 @@ function initModalsAndDrawer() {
       e.stopPropagation();
       const aff = btn.dataset.aff;
       const isAlreadyActive = btn.classList.contains("active");
+      const hasOfferNow = Boolean(document.getElementById("editCheckOfferReceived")?.checked);
+      const isLeadership = isTeamLeaderOrAdmin();
+
+      if (hasOfferNow) {
+        if (!isLeadership && !adminForceUnlock) {
+          showToast("Stage Locked", "Deal sourcing status is locked because an offer has been registered. Managers or Toby can unlock it.", "warning");
+          return;
+        }
+        if (isLeadership && !adminForceUnlock) {
+          adminForceUnlock = true;
+          if (currentDrawerDeal) {
+            updateDrawerLockingState(currentDrawerDeal, true);
+          }
+          showToast("Leadership Override", `Status unlocked and set to "${aff}". Previous stage fields are now editable.`, "info");
+        }
+      }
 
       if (isAlreadyActive) {
+        if (hasOfferNow && !isLeadership && !adminForceUnlock) {
+          showToast("Stage Locked", "Deal sourcing status is locked because an offer has been registered. Managers can unlock it.", "warning");
+          return;
+        }
+        if (hasOfferNow && isLeadership && !adminForceUnlock) {
+          adminForceUnlock = true;
+          if (currentDrawerDeal) {
+            updateDrawerLockingState(currentDrawerDeal, true);
+          }
+        }
         // Clicking an active Stage 1 choice deselects it!
         btn.classList.remove("active");
         let newAff = "Prenego";
@@ -4893,7 +4958,6 @@ function initModalsAndDrawer() {
         editAffaireSelect.value = aff;
         editAffaireSelect.dispatchEvent(new Event("change"));
       }
-      const hasOfferNow = Boolean(document.getElementById("editCheckOfferReceived")?.checked);
       const g1 = document.getElementById("groupSourcingSupplier");
       const g2 = document.getElementById("groupOfferDetails");
       const g3 = document.getElementById("groupNegotiationForecast") || document.getElementById("groupNegoForecast");
@@ -4926,10 +4990,12 @@ function initModalsAndDrawer() {
           bOutcome.className = "badge badge-gray";
           bOutcome.textContent = "In Progress";
         }
-      } else if (aff !== "DD" && !hasOfferNow) {
+      } else if (aff !== "DD") {
         // Lot / Prenego / CRV: open group 1 to allow editing sourcing info
         if (g1) g1.classList.add("open");
-        [g2, g3, g4].forEach(g => { if (g) g.classList.remove("open"); });
+        if (!hasOfferNow) {
+          [g2, g3, g4].forEach(g => { if (g) g.classList.remove("open"); });
+        }
       }
     });
   });
@@ -4937,7 +5003,24 @@ function initModalsAndDrawer() {
   // Stage 2 Header Offer Received Checkbox & Label
   const lblOfferHeader = document.getElementById("lblOfferReceivedHeader");
   if (lblOfferHeader) {
-    lblOfferHeader.addEventListener("click", (e) => e.stopPropagation());
+    lblOfferHeader.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const chk = document.getElementById("editCheckOfferReceived");
+      if (!chk) return;
+      if (chk.disabled) {
+        if (isTeamLeaderOrAdmin()) {
+          adminForceUnlock = true;
+          if (currentDrawerDeal) {
+            updateDrawerLockingState(currentDrawerDeal, true);
+          }
+          chk.checked = !chk.checked;
+          chk.dispatchEvent(new Event("change"));
+          showToast("Leadership Override", `Offer status toggled to ${chk.checked ? 'Received' : 'Unchecked'}.`);
+        } else {
+          showToast("Stage Locked", "Offer reception is locked because deal has progressed. Contact a Manager or Toby to modify.", "warning");
+        }
+      }
+    });
   }
 
   // Stage 3 Header Negotiation / Forecast / Re-val Buttons
@@ -4946,6 +5029,8 @@ function initModalsAndDrawer() {
       e.stopPropagation();
       const st = btn.dataset.offerStatus;
       const isOfferRcv = Boolean(document.getElementById("editCheckOfferReceived")?.checked);
+      const isOrderedNow = Boolean(document.getElementById("editCheckOrdered")?.checked);
+      const isLostNow = Boolean(document.getElementById("editCheckLost")?.checked);
 
       if (!isOfferRcv) {
         if (st === "Negociation" || st === "In Negotiation") {
@@ -4960,6 +5045,25 @@ function initModalsAndDrawer() {
           showToast("Progression Rule", "No Forecast or Re-valuation without Offer Reception. Please check 'Offer Received' and enter offer details first.", "warning");
           return;
         }
+      }
+
+      // Check if deal was already ordered (won) or lost (closed)
+      if (isOrderedNow || isLostNow) {
+        if (!isTeamLeaderOrAdmin() && !adminForceUnlock) {
+          showToast("Stage Finalized", "Deal outcome is finalized. Only Managers or Toby can revert this deal.", "warning");
+          return;
+        }
+        // Manager unlocking and reverting from Won / Lost back to negotiation/forecast:
+        adminForceUnlock = true;
+        if (document.getElementById("editCheckOrdered")) document.getElementById("editCheckOrdered").checked = false;
+        if (document.getElementById("editCheckLost")) document.getElementById("editCheckLost").checked = false;
+        const ordBox = document.getElementById("orderFieldsContainer");
+        if (ordBox) ordBox.style.display = "none";
+        updateOutcomePillStates();
+        if (currentDrawerDeal) {
+          updateDrawerLockingState(currentDrawerDeal, true);
+        }
+        showToast("Leadership Override", `Deal outcome cleared and returned to Stage 3 (${st}).`);
       }
 
       const isAlreadyActive = btn.classList.contains("active");
@@ -5063,7 +5167,12 @@ function initModalsAndDrawer() {
 
       if (isAlreadyActive) {
         // Clicking active outcome choice deselects it!
+        if (!isTeamLeaderOrAdmin() && !adminForceUnlock) {
+          showToast("Deal Finalized", "Only Managers or Toby can reopen finalized deals.", "warning");
+          return;
+        }
         btn.classList.remove("active");
+        adminForceUnlock = true;
         if (outcome === "won") {
           if (editCheckOrdered) {
             editCheckOrdered.checked = false;
@@ -5077,9 +5186,10 @@ function initModalsAndDrawer() {
         }
         updateOutcomePillStates();
         if (currentDrawerDeal) {
-          updateDrawerLockingState(currentDrawerDeal, adminForceUnlock);
+          updateDrawerLockingState(currentDrawerDeal, true);
           updateDrawerDelayDisplay(currentDrawerDeal);
         }
+        showToast("Leadership Override", "Deal outcome removed; stage reopened for negotiation.");
         return;
       }
 
@@ -5198,12 +5308,12 @@ function initModalsAndDrawer() {
     center.addEventListener("click", (e) => e.stopPropagation());
   });
 
-  // 7. Admin Emergency Stage Unlock Toggle
+  // 7. Leadership & Admin Emergency Stage Unlock Toggle
   const btnAdminToggleUnlock = document.getElementById("btnAdminToggleUnlock");
   if (btnAdminToggleUnlock) {
     btnAdminToggleUnlock.addEventListener("click", () => {
-      if (!isAdmin()) {
-        showToast("Unauthorized", "Only Toby (Admin) can override stage locks.");
+      if (!isTeamLeaderOrAdmin()) {
+        showToast("Unauthorized", "Only Leadership (Admin, Manager, Team Leader) can override stage locks.");
         return;
       }
       adminForceUnlock = !adminForceUnlock;
@@ -5211,9 +5321,27 @@ function initModalsAndDrawer() {
         updateDrawerLockingState(currentDrawerDeal, adminForceUnlock);
         applyAccordionStageFocus(currentDrawerDeal, adminForceUnlock);
       }
+      showToast(adminForceUnlock ? "Leadership Override" : "Stages Re-Locked", adminForceUnlock ? "Previous stages unlocked for editing." : "Progressive stage locking re-enabled.");
       initLucide();
     });
   }
+
+  document.querySelectorAll(".btn-override-unlock").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!isTeamLeaderOrAdmin()) {
+        showToast("Unauthorized", "Only Leadership (Admin, Manager, Team Leader) can override stage locks.");
+        return;
+      }
+      adminForceUnlock = true;
+      if (currentDrawerDeal) {
+        updateDrawerLockingState(currentDrawerDeal, true);
+        applyAccordionStageFocus(currentDrawerDeal, true);
+      }
+      showToast("Leadership Override", "Previous stages unlocked for editing.");
+      initLucide();
+    });
+  });
 
   // 8. Drawer Close
   const btnCloseDrawer = document.getElementById("btnCloseDrawer");
@@ -5337,8 +5465,13 @@ function initModalsAndDrawer() {
 
       // Process Offer & Order Fields
       if (isOfferReceived) {
-        // RULE 1: If offer received, DD was done!
-        deal.affaire_status = "DD";
+        // RULE 1: For regular buyers, if offer received, DD was completed.
+        // For Managers / Team Leaders / Admins: respect their explicit choice when unlocked or changed!
+        if (!isTeamLeaderOrAdmin() && !adminForceUnlock) {
+          deal.affaire_status = "DD";
+        } else {
+          deal.affaire_status = document.getElementById("editAffaireStatus")?.value || deal.affaire_status || "DD";
+        }
         if (!deal.dd_date) {
           deal.dd_date = document.getElementById("editDateDD")?.value || deal.offer_date || deal.entry_date || new Date().toISOString().split("T")[0];
         }
@@ -5516,8 +5649,8 @@ function initModalsAndDrawer() {
   const btnOpenSettings = document.getElementById("btnOpenSettings");
   if (btnOpenSettings) {
     btnOpenSettings.addEventListener("click", () => {
-      if (!isAdmin()) {
-        showToast("Access Restricted", "System settings are reserved for Toby (Administrator).");
+      if (!isAdmin() && !isManager()) {
+        showToast("Access Restricted", "System settings are reserved for Toby (Administrator) & Management.");
         return;
       }
       const urlEl = document.getElementById("cfgSupabaseUrl");
@@ -5780,9 +5913,16 @@ function renderUserAccountsTable() {
   accounts.forEach(acc => {
     const tr = document.createElement("tr");
     const isMainAdmin = acc.name === "Toby";
+    let badgeClass = "badge-teal";
+    if (acc.role === "Admin") badgeClass = "badge-primary";
+    else if (acc.role === "Manager") badgeClass = "badge-purple";
+    else if (acc.role === "Team Leader") badgeClass = "badge-teal";
+    else if (acc.role === "Buyer") badgeClass = "badge-gray";
+    else if (acc.role === "Prospector") badgeClass = "badge-green";
+
     tr.innerHTML = `
       <td><strong>${escapeHtml(acc.name)}</strong> ${isMainAdmin ? '<span class="badge badge-amber" style="font-size:0.65rem; margin-left:4px;">Primary</span>' : ''}</td>
-      <td class="text-center"><span class="badge ${acc.role === 'Admin' ? 'badge-primary' : 'badge-teal'}">${escapeHtml(acc.role)}</span></td>
+      <td class="text-center"><span class="badge ${badgeClass}">${escapeHtml(acc.role)}</span></td>
       <td class="text-center font-mono" style="letter-spacing:0.2em;">••••</td>
       <td class="text-right">
         <button class="btn btn-secondary btn-sm" onclick="editAccount('${escapeHtml(acc.name)}')"><i data-lucide="edit-3" style="width:13px; height:13px;"></i> Edit</button>

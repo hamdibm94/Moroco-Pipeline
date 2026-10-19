@@ -841,11 +841,11 @@
         <div class="drawer-left-col">
           <input type="hidden" id="editDealId">
           
-          <!-- Admin Emergency Stage Unlock Control -->
+          <!-- Leadership / Admin Emergency Stage Unlock Control -->
           <div id="drawerAdminUnlockBox" style="display:none; padding:0.4rem 0.85rem; background:rgba(99, 102, 241, 0.1); border-bottom:1px solid rgba(99, 102, 241, 0.2); font-size:0.75rem; color:var(--primary); align-items:center; justify-content:space-between;">
             <span style="display:flex; align-items:center; gap:5px;">
               <i data-lucide="shield-alert" style="width:13px; height:13px;"></i>
-              <span id="txtAdminUnlockStatus">Admin: Previous stages locked</span>
+              <span id="txtAdminUnlockStatus">Leadership Override: Previous stages locked</span>
             </span>
             <button type="button" id="btnAdminToggleUnlock" class="btn btn-secondary btn-sm" style="padding:0.15rem 0.5rem; font-size:0.68rem; height:auto;">
               <i data-lucide="unlock" style="width:11px; height:11px;"></i>
@@ -878,9 +878,14 @@
               </div>
               
               <div class="collapsible-group-body">
-                <div id="lockNoticeSourcing" class="lock-banner" style="display:none;">
-                  <i data-lucide="lock" style="width:13px; height:13px;"></i>
-                  <span>Sourcing & lot info locked because an offer has been registered.</span>
+                <div id="lockNoticeSourcing" class="lock-banner" style="display:none; justify-content:space-between; align-items:center;">
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="lock" style="width:13px; height:13px;"></i>
+                    <span>Sourcing & lot info locked because an offer has been registered.</span>
+                  </span>
+                  <button type="button" class="btn btn-secondary btn-sm btn-override-unlock" style="display:none; padding:2px 8px; font-size:0.68rem; height:auto; gap:4px;">
+                    <i data-lucide="unlock" style="width:11px; height:11px;"></i> Unlock Previous Status
+                  </button>
                 </div>
 
                 <!-- Hidden select kept for backwards compatibility -->
@@ -988,9 +993,14 @@
               </div>
 
               <div class="collapsible-group-body">
-                <div id="lockNoticeOffer" class="lock-banner" style="display:none;">
-                  <i data-lucide="lock" style="width:13px; height:13px;"></i>
-                  <span>Offer reference locked (Deal is in negotiation or finalized).</span>
+                <div id="lockNoticeOffer" class="lock-banner" style="display:none; justify-content:space-between; align-items:center;">
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="lock" style="width:13px; height:13px;"></i>
+                    <span>Offer reference locked (Deal is in negotiation or finalized).</span>
+                  </span>
+                  <button type="button" class="btn btn-secondary btn-sm btn-override-unlock" style="display:none; padding:2px 8px; font-size:0.68rem; height:auto; gap:4px;">
+                    <i data-lucide="unlock" style="width:11px; height:11px;"></i> Unlock Stage
+                  </button>
                 </div>
 
                 <!-- Offer Fields Container (Revealed when Offer Received is checked) -->
@@ -1041,9 +1051,14 @@
               </div>
 
               <div class="collapsible-group-body">
-                <div id="lockNoticeNego" class="lock-banner" style="display:none;">
-                  <i data-lucide="lock" style="width:13px; height:13px;"></i>
-                  <span>Negotiation locked (Deal finalized).</span>
+                <div id="lockNoticeNego" class="lock-banner" style="display:none; justify-content:space-between; align-items:center;">
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="lock" style="width:13px; height:13px;"></i>
+                    <span>Negotiation locked (Deal finalized).</span>
+                  </span>
+                  <button type="button" class="btn btn-secondary btn-sm btn-override-unlock" style="display:none; padding:2px 8px; font-size:0.68rem; height:auto; gap:4px;">
+                    <i data-lucide="unlock" style="width:11px; height:11px;"></i> Unlock Stage
+                  </button>
                 </div>
 
                 <!-- Hidden select kept for backwards compatibility -->
@@ -1096,9 +1111,14 @@
               </div>
 
               <div class="collapsible-group-body">
-                <div id="lockNoticeOutcome" class="lock-banner lock-banner-final" style="display:none;">
-                  <i data-lucide="shield-check" style="width:13px; height:13px;"></i>
-                  <span>Deal finalized. Previous information cannot be changed.</span>
+                <div id="lockNoticeOutcome" class="lock-banner lock-banner-final" style="display:none; justify-content:space-between; align-items:center;">
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="shield-check" style="width:13px; height:13px;"></i>
+                    <span>Deal finalized. Previous information cannot be changed.</span>
+                  </span>
+                  <button type="button" class="btn btn-secondary btn-sm btn-override-unlock" style="display:none; padding:2px 8px; font-size:0.68rem; height:auto; gap:4px;">
+                    <i data-lucide="unlock" style="width:11px; height:11px;"></i> Unlock Deal
+                  </button>
                 </div>
 
                 <!-- Hidden checkboxes for compatibility -->
@@ -1401,6 +1421,7 @@
               <select id="accRole" class="form-control">
                 <option value="Admin">Admin</option>
                 <option value="Manager">Manager</option>
+                <option value="Team Leader">Team Leader</option>
                 <option value="Buyer">Buyer</option>
                 <option value="Prospector">Prospector</option>
                 <option value="Team Member">Team Member</option>
