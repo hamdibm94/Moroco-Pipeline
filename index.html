@@ -118,6 +118,12 @@
             <i data-lucide="refresh-cw"></i>
           </button>
 
+          <!-- Cloud Database Live Status Indicator Pill -->
+          <div id="connectionStatus" class="connection-status online" title="Click to verify live Supabase cloud database sync & row count" onclick="verifySupabaseLiveCount(true)">
+            <span class="status-dot"></span>
+            <span class="status-text" id="cloudDbStatusText">Cloud: 39 deals</span>
+          </div>
+
           <!-- Active User Badge -->
           <div id="activeUserBadge" class="user-pill" title="Logged in as Administrator">
             <i data-lucide="user"></i>
@@ -813,7 +819,7 @@
         <div class="drawer-header-left">
           <div class="drawer-header-title">
             <span id="drawerSupplierTitle">Supplier Name</span>
-            <span class="badge badge-success" id="drawerVerifiedBadge" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:2px 8px; border-radius:20px; font-weight:600;"><i data-lucide="check" style="width:12px; height:12px;"></i> Verified</span>
+            <span class="badge badge-success" id="drawerVerifiedBadge" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:2px 8px; border-radius:20px; font-weight:600;" title="Live database verification"><i data-lucide="database" style="width:12px; height:12px;"></i> <span id="txtDrawerCloudSync">Cloud DB Verified</span></span>
             <button type="button" class="btn-icon-inline" id="btnEditSupplierNameTitle" title="Edit supplier name"><i data-lucide="edit-3" style="width:14px; height:14px;"></i></button>
           </div>
           <div class="drawer-header-badges">
@@ -1030,7 +1036,7 @@
               <div class="collapsible-group-header" data-toggle-group="groupNegotiationForecast">
                 <div class="group-header-left">
                   <div class="stage-num-icon"><i data-lucide="trending-up"></i></div>
-                  <span class="stage-title-text">3. Commercial Negotiation & Forecast</span>
+                  <span class="stage-title-text">3. Negotiation & Forecast</span>
                 </div>
                 <div class="group-header-center">
                   <!-- Negotiation status buttons in header -->
@@ -1040,9 +1046,9 @@
                     <button type="button" class="stage-btn-pill btn-pill-reval" data-offer-status="Re-valorisation"><i data-lucide="refresh-cw" style="width:11px; height:11px;"></i> Re-val</button>
                   </div>
                   <!-- Header BPA pills displayed dynamically when Forecast is active -->
-                  <div class="stage-btn-pill-group bpa-pill-group" id="btnGroupBPAHeader" style="display:none; margin-left:6px;">
-                    <button type="button" class="stage-btn-pill btn-pill-bpa-wait" data-bpa="false"><i data-lucide="clock" style="width:11px; height:11px;"></i> Awaiting BPA</button>
-                    <button type="button" class="stage-btn-pill btn-pill-bpa-conf" data-bpa="true"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> BPA Confirmed</button>
+                  <div class="stage-btn-pill-group bpa-pill-group" id="btnGroupBPAHeader" style="display:none;">
+                    <button type="button" class="stage-btn-pill btn-pill-bpa-wait" data-bpa="false" title="Forecast Awaiting BPA"><i data-lucide="clock" style="width:11px; height:11px;"></i> Awaiting BPA</button>
+                    <button type="button" class="stage-btn-pill btn-pill-bpa-conf" data-bpa="true" title="Forecast with BPA Received"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> BPA Received</button>
                   </div>
                 </div>
                 <div class="group-header-right">

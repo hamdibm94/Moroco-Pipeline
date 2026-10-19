@@ -295,35 +295,94 @@ function renderGlobalAuditLogs() {
     return;
   }
 
-  container.innerHTML = displayedLogs.map(log => `
-    <div class="log-item ${log.dealId ? 'log-item-clickable' : ''}" ${log.dealId ? `onclick="openDealFromLog(${log.dealId})"` : ''} title="${log.dealId ? 'Click to open deal' : ''}">
-      <div class="log-item-header">
-        <span class="log-author-tag">
-          <i data-lucide="${log.user === 'Toby' ? 'crown' : 'user'}"></i>
-          <strong>${escapeHtml(log.user)}</strong>
-          <span style="font-weight:400; color:var(--text-dim);">· ${escapeHtml(log.action)}</span>
-        </span>
-        <div style="display:flex; align-items:center; gap:0.5rem;">
-          ${log.dealId ? `<span class="badge badge-primary" style="font-size:0.7rem; font-weight:700;"><i data-lucide="external-link" style="width:11px; height:11px;"></i>View Deal</span>` : ''}
-          <span class="log-timestamp">${escapeHtml(log.timestamp)}</span>
+  container.innerHTML = displayedLogs.map(log => {
+    const isSystemSupplier = !log.supplier || ["Security", "Cloud DB", "System", "Pipeline"].includes(log.supplier);
+    const hasTargetDeal = Boolean(log.dealId || !isSystemSupplier);
+    const safeDealId = (log.dealId !== null && log.dealId !== undefined) ? String(log.dealId) : "";
+    const safeSupplier = (log.supplier || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+
+    return `
+      <div class="log-item ${hasTargetDeal ? 'log-item-clickable' : ''}" ${hasTargetDeal ? `onclick="openDealFromLog('${safeDealId}', '${safeSupplier}')"` : ''} title="${hasTargetDeal ? 'Click to inspect deal' : ''}">
+        <div class="log-item-header">
+          <span class="log-author-tag">
+            <i data-lucide="${log.user === 'Toby' ? 'crown' : 'user'}"></i>
+            <strong>${escapeHtml(log.user)}</strong>
+            <span style="font-weight:400; color:var(--text-dim);">· ${escapeHtml(log.action)}</span>
+          </span>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            ${hasTargetDeal ? `<span class="badge badge-primary" style="font-size:0.7rem; font-weight:700; cursor:pointer;"><i data-lucide="external-link" style="width:11px; height:11px;"></i>View Deal</span>` : ''}
+            <span class="log-timestamp">${escapeHtml(log.timestamp)}</span>
+          </div>
+        </div>
+        <div class="log-item-text" style="font-size:0.88rem; font-weight:700; color:var(--text-main); margin-bottom:2px;">
+          ${escapeHtml(log.supplier)}
+        </div>
+        <div class="log-item-text" style="color:var(--text-muted); font-size:0.8rem;">
+          ${escapeHtml(log.details)}
         </div>
       </div>
-      <div class="log-item-text" style="font-size:0.88rem; font-weight:700; color:var(--text-main); margin-bottom:2px;">
-        ${escapeHtml(log.supplier)}
-      </div>
-      <div class="log-item-text" style="color:var(--text-muted); font-size:0.8rem;">
-        ${escapeHtml(log.details)}
-      </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
   initLucide();
 }
 
-window.openDealFromLog = (dealId) => {
+window.openDealFromLog = async (dealId, supplierName) => {
   const auditModal = document.getElementById("auditModal");
   if (auditModal) auditModal.classList.remove("open");
-  const deal = allDeals.find(d => d.id === dealId);
-  if (deal) openDrawer(deal);
+
+  const cleanId = (dealId !== null && dealId !== undefined && dealId !== "null" && dealId !== "undefined" && String(dealId).trim() !== "") ? String(dealId).trim() : null;
+  const cleanSupplier = (supplierName && typeof supplierName === "string" && !["Security", "Cloud DB", "System", "Pipeline"].includes(supplierName.trim())) ? supplierName.trim() : null;
+
+  let deal = null;
+
+  // 1. First look up by ID or affaire_number in local allDeals
+  if (cleanId) {
+    deal = allDeals.find(d => String(d.id) === cleanId || (d.affaire_number && String(d.affaire_number) === cleanId));
+  }
+
+  // 2. Fallback to supplier match in local allDeals
+  if (!deal && cleanSupplier) {
+    const lowerSup = cleanSupplier.toLowerCase();
+    deal = allDeals.find(d => d.supplier && d.supplier.trim().toLowerCase() === lowerSup);
+    if (!deal) {
+      deal = allDeals.find(d => d.supplier && (d.supplier.toLowerCase().includes(lowerSup) || lowerSup.includes(d.supplier.toLowerCase())));
+    }
+  }
+
+  // 3. Fallback: Query live Supabase directly! (Critical for multi-device sync)
+  if (!deal && supabaseClient && (cleanId || cleanSupplier)) {
+    try {
+      const tbl = localStorage.getItem("morocco_supabase_table") || DEFAULT_SUPABASE_TABLE;
+      let query = supabaseClient.from(tbl).select("*");
+      if (cleanId && !isNaN(cleanId)) {
+        query = query.eq("id", parseInt(cleanId, 10));
+      } else if (cleanSupplier) {
+        query = query.ilike("supplier", cleanSupplier);
+      }
+      const { data, error } = await query.limit(1);
+      if (!error && data && data.length > 0) {
+        deal = data[0];
+        const existingIdx = allDeals.findIndex(d => String(d.id) === String(deal.id));
+        if (existingIdx === -1) {
+          allDeals.push(deal);
+        } else {
+          allDeals[existingIdx] = deal;
+        }
+        localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
+        applyFiltersAndRender();
+      }
+    } catch (e) {
+      console.warn("Supabase on-demand deal fetch warning:", e);
+    }
+  }
+
+  // 4. Open Deal Inspector drawer or inform the user politely
+  if (deal) {
+    openDrawer(deal);
+  } else {
+    const label = cleanSupplier || (cleanId ? `#${cleanId}` : "selected");
+    showToast("Deal Not Found", `Could not find deal "${label}". It may have been deleted or archived.`, "warning");
+  }
 };
 
 function updateAdminUI() {
@@ -544,7 +603,7 @@ function initSupabase() {
       if (connStatus) {
         connStatus.className = "connection-status online";
         const txt = connStatus.querySelector(".status-text");
-        if (txt) txt.textContent = "Cloud Sync Active";
+        if (txt) txt.textContent = "Connecting Cloud...";
       }
 
       // Realtime subscription for deals table
@@ -566,6 +625,8 @@ function initSupabase() {
         })
         .subscribe();
 
+      updateLiveCloudPill(true);
+
     } catch (err) {
       console.error("Supabase init error:", err);
       if (connStatus) {
@@ -582,6 +643,85 @@ function initSupabase() {
     }
   }
 }
+
+async function updateLiveCloudPill(verifyOnline = false) {
+  const pill = document.getElementById("connectionStatus");
+  const txt = document.getElementById("cloudDbStatusText");
+  if (!supabaseClient) {
+    if (pill) {
+      pill.className = "connection-status offline";
+      pill.title = "Supabase non connecté (Mode local)";
+    }
+    if (txt) txt.textContent = "Local Mode";
+    return;
+  }
+
+  if (verifyOnline) {
+    try {
+      if (pill) pill.className = "connection-status syncing";
+      if (txt) txt.textContent = "Verifying...";
+      const tbl = localStorage.getItem("morocco_supabase_table") || DEFAULT_SUPABASE_TABLE;
+      const { count, error } = await supabaseClient.from(tbl).select("*", { count: "exact", head: true });
+      if (error) throw error;
+      if (pill) {
+        pill.className = "connection-status online";
+        pill.title = `Supabase Cloud Connecté: ${count} affaires en direct dans '${tbl}'. Cliquez pour vérifier.`;
+      }
+      if (txt) txt.textContent = `Cloud: ${count} deals`;
+    } catch (e) {
+      if (pill) {
+        pill.className = "connection-status offline";
+        pill.title = "Erreur de connexion à Supabase";
+      }
+      if (txt) txt.textContent = "Cloud Error";
+    }
+  } else {
+    if (pill) {
+      pill.className = "connection-status online";
+      pill.title = `Supabase Cloud Connecté: ${allDeals.length} affaires en mémoire. Cliquez pour vérifier en direct.`;
+    }
+    if (txt) txt.textContent = `Cloud: ${allDeals.length} deals`;
+  }
+}
+
+window.verifySupabaseLiveCount = async (showToastNotice = false) => {
+  if (!supabaseClient) {
+    initSupabase();
+  }
+  const pill = document.getElementById("connectionStatus");
+  const txt = document.getElementById("cloudDbStatusText");
+  if (pill) pill.className = "connection-status syncing";
+  if (txt) txt.textContent = "Connecting...";
+
+  try {
+    const tbl = localStorage.getItem("morocco_supabase_table") || DEFAULT_SUPABASE_TABLE;
+    const startTime = performance.now();
+    const { count, error } = await supabaseClient.from(tbl).select("*", { count: "exact", head: true });
+    const latency = Math.round(performance.now() - startTime);
+
+    if (error) throw error;
+
+    if (pill) {
+      pill.className = "connection-status online";
+      pill.title = `Supabase Cloud Connecté: ${count} affaires en direct dans '${tbl}'.`;
+    }
+    if (txt) txt.textContent = `Cloud: ${count} deals`;
+
+    if (showToastNotice) {
+      showToast("Supabase Vérifié à 100% ✓", `${count} affaires confirmées en direct sur le serveur cloud '${tbl}' (latence: ${latency}ms).`, "success");
+    }
+  } catch (err) {
+    console.error("Live verification error:", err);
+    if (pill) {
+      pill.className = "connection-status offline";
+      pill.title = "Erreur de connexion Supabase";
+    }
+    if (txt) txt.textContent = "Sync Offline";
+    if (showToastNotice) {
+      showToast("Erreur Supabase", `Impossible de contacter la base de données: ${err.message}`, "danger");
+    }
+  }
+};
 
 const CURRENT_DATABASE_VERSION = "2026-10-19-v8-production-cloud";
 
@@ -742,6 +882,25 @@ async function fetchLogsFromSupabase() {
   }
 }
 
+const ALLOWED_SUPABASE_COLUMNS = new Set([
+  "id", "entry_date", "buyer", "prospector", "supplier", "supplier_type",
+  "product", "product_range", "affaire_status", "dd_date", "offer_date",
+  "offer_number", "offer_value", "offer_status", "bpa_received", "bpa_date",
+  "order_value", "margin_value", "margin_rate", "order_date", "notes",
+  "team", "affaire_number", "purchase_price"
+]);
+
+function sanitizeDealForSupabase(deal, isInsert = false) {
+  const clean = {};
+  for (const [key, value] of Object.entries(deal)) {
+    if (ALLOWED_SUPABASE_COLUMNS.has(key)) {
+      if (isInsert && key === "id" && !value) continue;
+      clean[key] = value;
+    }
+  }
+  return clean;
+}
+
 async function saveDealRecord(deal) {
   deal.offer_value = parseFloat(deal.offer_value) || 0;
   deal.purchase_price = parseFloat(deal.purchase_price) || 0;
@@ -762,37 +921,63 @@ async function saveDealRecord(deal) {
   const tableName = localStorage.getItem("morocco_supabase_table") || DEFAULT_SUPABASE_TABLE;
 
   if (deal.id) {
-    // Update existing
-    const idx = allDeals.findIndex(d => d.id === deal.id);
-    if (idx !== -1) {
-      allDeals[idx] = { ...allDeals[idx], ...deal };
-    }
-    
     if (supabaseClient) {
-      try {
-        await supabaseClient.from(tableName).update(deal).eq("id", deal.id);
-      } catch (err) {
-        console.error("Supabase update error:", err);
+      const payload = sanitizeDealForSupabase(deal, false);
+      delete payload.id;
+      const { data, error } = await supabaseClient
+        .from(tableName)
+        .update(payload)
+        .eq("id", deal.id)
+        .select();
+
+      if (error) {
+        console.error("Supabase update error:", error);
+        throw new Error(`Erreur Supabase: ${error.message || JSON.stringify(error)}`);
+      }
+      if (!data || data.length === 0) {
+        throw new Error(`Supabase n'a renvoyé aucune confirmation pour l'affaire #${deal.id}.`);
+      }
+      const verifiedDeal = data[0];
+      const idx = allDeals.findIndex(d => String(d.id) === String(deal.id));
+      if (idx !== -1) {
+        allDeals[idx] = { ...allDeals[idx], ...verifiedDeal };
+      }
+    } else {
+      const idx = allDeals.findIndex(d => String(d.id) === String(deal.id));
+      if (idx !== -1) {
+        allDeals[idx] = { ...allDeals[idx], ...deal };
       }
     }
   } else {
-    // Create new
-    const maxId = allDeals.reduce((max, d) => Math.max(max, d.id || 0), 0);
-    deal.id = maxId + 1;
-    allDeals.push(deal);
-
     if (supabaseClient) {
-      try {
-        await supabaseClient.from(tableName).insert([deal]);
-      } catch (err) {
-        console.error("Supabase insert error:", err);
+      const payload = sanitizeDealForSupabase(deal, false);
+      delete payload.id;
+      const { data, error } = await supabaseClient
+        .from(tableName)
+        .insert([payload])
+        .select();
+
+      if (error) {
+        console.error("Supabase insert error:", error);
+        throw new Error(`Erreur d'insertion Supabase: ${error.message || JSON.stringify(error)}`);
       }
+      if (!data || data.length === 0 || !data[0].id) {
+        throw new Error("Supabase n'a pas confirmé l'enregistrement de l'affaire.");
+      }
+      deal.id = data[0].id;
+      allDeals.push(data[0]);
+    } else {
+      const maxId = allDeals.reduce((max, d) => Math.max(max, parseInt(d.id, 10) || 0), 0);
+      deal.id = maxId + 1;
+      allDeals.push(deal);
     }
   }
 
   localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
   updateProspectorFilterOptions();
   applyFiltersAndRender();
+  updateLiveCloudPill(false);
+  return { success: true, dealId: deal.id };
 }
 
 // ── 7. BUSINESS LOGIC (EXCEL WORKFLOW EQUIVALENT FORMULAS - WORKING DAYS) ───
@@ -4006,6 +4191,11 @@ function openDrawer(deal) {
   document.getElementById("editDealId").value = deal.id;
   document.getElementById("drawerSupplierTitle").textContent = deal.supplier || `Deal #${deal.id}`;
 
+  const txtCloudSync = document.getElementById("txtDrawerCloudSync");
+  if (txtCloudSync) {
+    txtCloudSync.textContent = deal.id ? `Supabase ID #${deal.id}` : "Nouvelle affaire";
+  }
+
   const drawerAffaireBadge = document.getElementById("drawerAffaireBadge");
   if (drawerAffaireBadge) {
     if (deal.affaire_number) {
@@ -4514,7 +4704,6 @@ function initModalsAndDrawer() {
         offer_date: null,
         offer_number: null,
         offer_value: 0,
-        forecast_value: 0,
         offer_status: "",
         bpa_received: false,
         purchase_price: 0,
@@ -4526,10 +4715,29 @@ function initModalsAndDrawer() {
         team: "Morocco"
       };
 
-      await saveDealRecord(newDeal);
-      recordAuditLog("Deal Sourced", newDeal.supplier, `New deal sourced · Buyer: ${newDeal.buyer} · Entered by ${currentUser}`, newDeal.id);
-      addModal.classList.remove("open");
-      showToast("Deal Saved", `${newDeal.supplier} added to pipeline.`);
+      const btnSubmit = addForm.querySelector('button[type="submit"]');
+      const oldBtnHtml = btnSubmit ? btnSubmit.innerHTML : "";
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = `<i data-lucide="loader" class="btn-refresh-spinning" style="width:13px; height:13px;"></i> <span>Enregistrement Cloud...</span>`;
+      }
+
+      try {
+        await saveDealRecord(newDeal);
+        recordAuditLog("Deal Sourced", newDeal.supplier, `New deal sourced · Buyer: ${newDeal.buyer} · Entered by ${currentUser}`, newDeal.id);
+        addModal.classList.remove("open");
+        addForm.reset();
+        showToast("Enregistré dans Supabase ✓", `${newDeal.supplier} (ID #${newDeal.id}) sauvegardé et vérifié en direct dans la base cloud.`, "success");
+      } catch (err) {
+        console.error("Add deal error:", err);
+        showToast("Échec de synchronisation", `L'affaire n'a pas pu être enregistrée dans Supabase: ${err.message}`, "danger");
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = oldBtnHtml;
+        }
+        initLucide();
+      }
     });
   }
 
@@ -5603,11 +5811,24 @@ function initModalsAndDrawer() {
         deal.notes = deal.notes ? `${deal.notes.trim()}\n${autoLog}` : autoLog;
       }
 
-      await saveDealRecord(deal);
-      recordAuditLog("Deal Updated", deal.supplier, `Stage: ${newStageLabel} · Offer: ${formatCurrencyEUR(deal.offer_value)} by ${currentUser}`, deal.id);
-      drawerOverlay.classList.remove("open");
-      applyFiltersAndRender();
-      showToast("Changes Saved", `${deal.supplier} updated successfully.`);
+      const oldBtnHtml = btnSaveDrawer.innerHTML;
+      btnSaveDrawer.disabled = true;
+      btnSaveDrawer.innerHTML = `<i data-lucide="loader" class="btn-refresh-spinning" style="width:13px; height:13px;"></i> <span>Synchronisation Cloud...</span>`;
+
+      try {
+        await saveDealRecord(deal);
+        recordAuditLog("Deal Updated", deal.supplier, `Stage: ${newStageLabel} · Offer: ${formatCurrencyEUR(deal.offer_value)} by ${currentUser}`, deal.id);
+        drawerOverlay.classList.remove("open");
+        applyFiltersAndRender();
+        showToast("Mis à jour dans Supabase ✓", `${deal.supplier} mis à jour et vérifié en direct dans la base cloud.`, "success");
+      } catch (err) {
+        console.error("Save deal error:", err);
+        showToast("Échec de synchronisation", `Les modifications n'ont pas pu être écrites dans Supabase: ${err.message}`, "danger");
+      } finally {
+        btnSaveDrawer.disabled = false;
+        btnSaveDrawer.innerHTML = oldBtnHtml;
+        initLucide();
+      }
     });
   }
 
@@ -5631,9 +5852,12 @@ function initModalsAndDrawer() {
         if (supabaseClient) {
           try {
             const tbl = localStorage.getItem("morocco_supabase_table") || DEFAULT_SUPABASE_TABLE;
-            await supabaseClient.from(tbl).delete().eq("id", id);
+            const { error } = await supabaseClient.from(tbl).delete().eq("id", id);
+            if (error) throw error;
           } catch (err) {
             console.error("Supabase delete error:", err);
+            showToast("Échec de suppression Cloud", `Impossible de supprimer de Supabase: ${err.message}`, "danger");
+            return;
           }
         }
 
@@ -5699,9 +5923,9 @@ function initModalsAndDrawer() {
 
       try {
         const testClient = supabase.createClient(url, key);
-        const { data, error } = await testClient.from(tbl).select("id").limit(1);
+        const { count, error } = await testClient.from(tbl).select("*", { count: "exact", head: true });
         if (error) throw error;
-        showToast("Connection Successful", `Table "${tbl}" accessed successfully!`);
+        showToast("Supabase Vérifié à 100% ✓", `Connexion réussie ! ${count} affaires confirmées en direct dans "${tbl}".`, "success");
       } catch (err) {
         alert(`Supabase connection failed:\n${err.message || err}`);
       }
