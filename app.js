@@ -952,10 +952,23 @@ async function saveDealRecord(deal) {
     if (supabaseClient) {
       const payload = sanitizeDealForSupabase(deal, false);
       delete payload.id;
-      const { data, error } = await supabaseClient
+      let { data, error } = await supabaseClient
         .from(tableName)
         .insert([payload])
         .select();
+
+      // AUTO-HEAL: If sequence collides with an existing ID (PostgreSQL 23505), calculate true MAX(id) + 1 and retry
+      if (error && (error.code === "23505" || (error.message && error.message.includes("violates unique constraint")))) {
+        console.warn("Sequence collision detected on insert. Auto-recovering with safe max ID...");
+        const maxId = allDeals.reduce((max, d) => Math.max(max, parseInt(d.id, 10) || 0), 0);
+        payload.id = maxId + 1;
+        const retry = await supabaseClient
+          .from(tableName)
+          .insert([payload])
+          .select();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.error("Supabase insert error:", error);
