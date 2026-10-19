@@ -506,11 +506,13 @@ function initPINLock() {
 }
 
 // ── 6. SUPABASE CLOUD SYNC & DATA PERSISTENCE ─────────────────────────────
+const DEFAULT_SUPABASE_URL = "https://nmsadznybzogujewxkmw.supabase.co";
+const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tc2Fkem55YnpvZ3VqZXd4a213Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxNjM0NzEsImV4cCI6MjEwNzczOTQ3MX0.bZa10sJSL7eIYpFWsWEOTMqULwfN6YB2fW350u6GFgM";
 const DEFAULT_SUPABASE_TABLE = "morocco_pipeline";
 
 function initSupabase() {
-  const url = localStorage.getItem("morocco_supabase_url");
-  const key = localStorage.getItem("morocco_supabase_key");
+  const url = localStorage.getItem("morocco_supabase_url") || DEFAULT_SUPABASE_URL;
+  const key = localStorage.getItem("morocco_supabase_key") || DEFAULT_SUPABASE_KEY;
   const tableName = localStorage.getItem("morocco_supabase_table") || DEFAULT_SUPABASE_TABLE;
   const connStatus = document.getElementById("connectionStatus");
 
@@ -559,16 +561,20 @@ function initSupabase() {
   }
 }
 
-const CURRENT_DATABASE_VERSION = "2026-10-16-v7-production-clean";
+const CURRENT_DATABASE_VERSION = "2026-10-19-v8-production-cloud";
 
 function reflashLocalDatabase(notify = false) {
-  allDeals = [];
+  if (typeof window !== "undefined" && window.initialPipelineData && Array.isArray(window.initialPipelineData) && window.initialPipelineData.length > 0) {
+    allDeals = JSON.parse(JSON.stringify(window.initialPipelineData));
+  } else {
+    allDeals = [];
+  }
   globalAuditLogs = [];
-  localStorage.setItem("morocco_pipeline_deals", JSON.stringify([]));
+  localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
   localStorage.setItem("morocco_audit_logs", JSON.stringify([]));
   localStorage.setItem("morocco_pipeline_db_version", CURRENT_DATABASE_VERSION);
   if (notify) {
-    showToast("Database Cleared", "Test data removed. Pipeline is ready for production.");
+    showToast("Database Reflashed", `${allDeals.length} deals loaded from production file.`);
   }
   return true;
 }
@@ -588,29 +594,21 @@ async function loadDeals() {
     }
   }
 
-  // Automatic clean of legacy test data if version changed
-  const storedVersion = localStorage.getItem("morocco_pipeline_db_version");
-  if (storedVersion !== CURRENT_DATABASE_VERSION) {
-    console.log("Upgraded to clean production database. Clearing legacy test records...");
-    reflashLocalDatabase(false);
-    return;
-  }
-
-  // Fallback 1: LocalStorage
+  // Fallback 1: LocalStorage (if populated)
   const local = localStorage.getItem("morocco_pipeline_deals");
   if (local) {
     try {
       const parsed = JSON.parse(local);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         allDeals = parsed;
         return;
       }
     } catch (e) {}
   }
 
-  // Fallback 2: Synchronous window.SEED_DEALS
-  if (typeof window !== "undefined" && window.SEED_DEALS && Array.isArray(window.SEED_DEALS)) {
-    allDeals = JSON.parse(JSON.stringify(window.SEED_DEALS));
+  // Fallback 2: Synchronous window.initialPipelineData
+  if (typeof window !== "undefined" && window.initialPipelineData && Array.isArray(window.initialPipelineData) && window.initialPipelineData.length > 0) {
+    allDeals = JSON.parse(JSON.stringify(window.initialPipelineData));
     localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
     localStorage.setItem("morocco_pipeline_db_version", CURRENT_DATABASE_VERSION);
     return;
@@ -620,14 +618,58 @@ async function loadDeals() {
   try {
     const res = await fetch("initial_data.json");
     if (res.ok) {
-      allDeals = await res.json();
-      localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
-      localStorage.setItem("morocco_pipeline_db_version", CURRENT_DATABASE_VERSION);
+      const parsed = await res.json();
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        allDeals = parsed;
+        localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
+        localStorage.setItem("morocco_pipeline_db_version", CURRENT_DATABASE_VERSION);
+        return;
+      }
     }
   } catch (err) {
     allDeals = [];
   }
 }
+
+async function refreshPipelineData() {
+  const btn = document.getElementById("btnRefreshData");
+  if (btn) btn.classList.add("btn-refresh-spinning");
+
+  try {
+    if (!supabaseClient) {
+      initSupabase();
+    }
+
+    let refreshed = false;
+    if (supabaseClient) {
+      const ok = await fetchFromSupabase();
+      if (ok) {
+        await fetchLogsFromSupabase();
+        refreshed = true;
+      }
+    }
+
+    if (!refreshed) {
+      await loadDeals();
+    }
+
+    updateProspectorFilterOptions();
+    applyFiltersAndRender();
+    renderGlobalAuditLogs();
+
+    showToast("Data Refreshed", `${allDeals.length} deals synchronized with Cloud Database.`);
+  } catch (err) {
+    console.error("Refresh error:", err);
+    showToast("Refresh Failed", "Could not sync data. Check internet connection.");
+  } finally {
+    if (btn) {
+      setTimeout(() => {
+        btn.classList.remove("btn-refresh-spinning");
+      }, 500);
+    }
+  }
+}
+window.refreshPipelineData = refreshPipelineData;
 
 async function fetchFromSupabase() {
   if (!supabaseClient) return false;
@@ -639,7 +681,7 @@ async function fetchFromSupabase() {
       .order("id", { ascending: true });
     
     if (error) throw error;
-    if (data) {
+    if (data && data.length > 0) {
       allDeals = data;
       localStorage.setItem("morocco_pipeline_deals", JSON.stringify(allDeals));
       updateProspectorFilterOptions();
@@ -5481,8 +5523,8 @@ function initModalsAndDrawer() {
       const urlEl = document.getElementById("cfgSupabaseUrl");
       const keyEl = document.getElementById("cfgSupabaseKey");
       const tblEl = document.getElementById("cfgSupabaseTable");
-      if (urlEl) urlEl.value = localStorage.getItem("morocco_supabase_url") || "";
-      if (keyEl) keyEl.value = localStorage.getItem("morocco_supabase_key") || "";
+      if (urlEl) urlEl.value = localStorage.getItem("morocco_supabase_url") || DEFAULT_SUPABASE_URL;
+      if (keyEl) keyEl.value = localStorage.getItem("morocco_supabase_key") || DEFAULT_SUPABASE_KEY;
       if (tblEl) tblEl.value = localStorage.getItem("morocco_supabase_table") || DEFAULT_SUPABASE_TABLE;
       settingsModal.classList.add("open");
       initLucide();
@@ -5713,6 +5755,14 @@ function initModalsAndDrawer() {
   if (btnReflash) {
     btnReflash.addEventListener("click", () => {
       window.reflashDatabase(true);
+    });
+  }
+
+  // 8. Refresh Data from Cloud Database (Visible to ALL accounts)
+  const btnRefreshData = document.getElementById("btnRefreshData");
+  if (btnRefreshData) {
+    btnRefreshData.addEventListener("click", () => {
+      refreshPipelineData();
     });
   }
 }
